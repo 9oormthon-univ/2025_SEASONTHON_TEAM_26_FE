@@ -1,5 +1,5 @@
 name: seasonthon_team26_fe
-description: [2025 kakao X groom 시즌톤] 26팀 [꿈마중 버스] 프론트엔드
+description: "[2025 kakao X groom 시즌톤] 26팀 [꿈마중 버스] 프론트엔드"
 
 publish_to: "none"
 
@@ -11,10 +11,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # 카카오 관련
-  kakao_flutter_sdk: ^1.8.0
-  kakao_map_plugin: ^1.0.0
 
   # API 통신
   http: ^1.1.0
