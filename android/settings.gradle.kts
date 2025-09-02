@@ -23,4 +23,14 @@ plugins {
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://storage.googleapis.com/download.flutter.io")
+        maven("https://devrepo.kakao.com/nexus/repository/kakaomap-releases/")
+    }
+}
+
 include(":app")
