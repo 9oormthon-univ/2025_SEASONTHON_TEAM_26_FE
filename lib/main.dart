@@ -9,7 +9,7 @@ import 'screens/bus_application_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ 카카오 네이티브 앱 키로 SDK 초기화 (Kakao Developers 콘솔에서 발급)
+  // 카카오 네이티브 앱 키로 SDK 초기화 (Kakao Developers 콘솔에서 발급)
   await KakaoMapsFlutter.init('7388c32d83d1c4266b0af485cefbacca');
 
   runApp(const MyApp());

@@ -12,20 +12,23 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # 상태 관리
+  provider: ^6.1.1
+
+  # 위치
+  geolocator: ^14.0.2
+
+  # 카카오맵
   kakao_maps_flutter: ^0.1.1
 
   # API 통신
-  http: ^1.1.0
-
-  # 상태 관리
-  provider: ^6.1.1
+  http: ^1.2.2
 
   # 로컬 저장소
   shared_preferences: ^2.2.2
 
   # 외부 링크
   url_launcher: ^6.2.1
-  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:
@@ -36,3 +39,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/blue_dot.png
+    - assets/images/stop_pin.png
