@@ -1,9 +1,9 @@
 // lib/screens/bus_status_screen.dart
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:kakao_maps_flutter/kakao_maps_flutter.dart' as kmap; // LatLng 가져오기
+import 'package:kakao_maps_flutter/kakao_maps_flutter.dart' as kmap;
 import '../widgets/kakao_map_view.dart';
-import '../models/bus_stop.dart';
+import '../models/bus_stop.dart'; // 파일명만 bus_stop.dart, 클래스는 Stop
 
 class BusStatusScreen extends StatefulWidget {
   const BusStatusScreen({super.key});
@@ -14,6 +14,7 @@ class BusStatusScreen extends StatefulWidget {
 
 class _BusStatusScreenState extends State<BusStatusScreen> {
   final GlobalKey<KakaoMapViewState> _mapKey = GlobalKey<KakaoMapViewState>();
+  final DraggableScrollableController _sheetCtrl = DraggableScrollableController();
 
   List<Stop> _stops = [];
   Stop? _selected;
@@ -26,21 +27,32 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _refreshNearBy,
+            onPressed: _refreshNearBy, // 현위치 + 주변 정류장(목업) 불러오기
             tooltip: '주변 정류장 불러오기',
           ),
         ],
       ),
       body: Stack(
         children: [
-          // ① 지도
-          Positioned.fill(child: KakaoMapView(key: _mapKey)),
+          // ① 지도 (정류장 마커 탭 콜백 연결)
+          Positioned.fill(
+            child: KakaoMapView(
+              key: _mapKey,
+              onStopMarkerTap: (stop) async {
+                setState(() => _selected = stop);
+                // 마커 탭 시 시트를 살짝 올려서 정보가 보이게
+                try {
+                  await _sheetCtrl.animateTo(
+                    0.30, duration: const Duration(milliseconds: 250), curve: Curves.easeOut,
+                  );
+                } catch (_) {}
+              },
+            ),
+          ),
 
           // ② 상단 검색/필터 바 (예시)
           Positioned(
-            top: 12,
-            left: 12,
-            right: 12,
+            top: 12, left: 12, right: 12,
             child: _TopSearchBar(onSubmitted: (q) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('검색어: $q')),
@@ -50,6 +62,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
 
           // ③ 하단 드래그 시트
           DraggableScrollableSheet(
+            controller: _sheetCtrl,
             initialChildSize: 0.22,
             minChildSize: 0.10,
             maxChildSize: 0.45,
@@ -60,10 +73,14 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                 stops: _stops,
                 onTapStop: (s) async {
                   setState(() => _selected = s);
-                  // ✅ LatLng는 kakao_maps_flutter의 것을 사용
                   await _mapKey.currentState?.moveToAndMark(
                     kmap.LatLng(latitude: s.lat, longitude: s.lng),
                   );
+                  try {
+                    await _sheetCtrl.animateTo(
+                      0.30, duration: const Duration(milliseconds: 250), curve: Curves.easeOut,
+                    );
+                  } catch (_) {}
                 },
               );
             },
@@ -101,7 +118,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     final pos = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.best,
     );
-    final me = kmap.LatLng(latitude: pos.latitude, longitude: pos.longitude); // ✅
+    final me = kmap.LatLng(latitude: pos.latitude, longitude: pos.longitude);
 
     // 지도 이동 + 내 위치 마커
     await _mapKey.currentState?.moveToAndMark(me);
@@ -117,13 +134,20 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       _stops = stops;
       _selected = stops.isNotEmpty ? stops.first : null;
     });
+
+    // 시트를 살짝 올려서 리스트가 보이게
+    try {
+      await _sheetCtrl.animateTo(
+        0.22, duration: const Duration(milliseconds: 200), curve: Curves.easeOut,
+      );
+    } catch (_) {}
   }
 
   /// TODO: 나중에 Spring API 연결 (HttpStopApi 등으로 교체)
   Future<List<Stop>> _fetchNearbyStops(double lat, double lng) async {
     await Future.delayed(const Duration(milliseconds: 300));
     return [
-      Stop(stopId: 1, regionId: 1, name: '시청역 사거리', lat: lat + 0.001,  lng: lng + 0.001),
+      Stop(stopId: 1, regionId: 1, name: '시청역 사거리', lat: lat + 0.0010,  lng: lng + 0.0010),
       Stop(stopId: 2, regionId: 1, name: '덕수궁 앞',     lat: lat - 0.0012, lng: lng + 0.0006),
       Stop(stopId: 3, regionId: 1, name: '청계광장',     lat: lat + 0.0005, lng: lng - 0.0015),
     ];
@@ -193,7 +217,7 @@ class _BottomSheetContent extends StatelessWidget {
           if (selected != null) ...[
             Text(selected!.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
-            _kv('지역', '천안'),             // TODO
+            _kv('지역', '천안'),             // TODO: 백엔드 연동 시 region name
             _kv('운행 요일', '월'),          // TODO
             _kv('도착 시간', '13:00'),       // TODO
             _kv('정차 시간', '1시간 30분'),    // TODO
