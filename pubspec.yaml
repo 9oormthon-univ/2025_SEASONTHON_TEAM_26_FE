@@ -1,0 +1,39 @@
+name: seasonthon_team26_fe
+description: "[2025 kakao X groom 시즌톤] 26팀 [꿈마중 버스] 프론트엔드"
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # API 통신
+  http: ^1.1.0
+
+  # 상태 관리
+  provider: ^6.1.1
+
+  # 로컬 저장소
+  kpostal: ^1.1.0
+  shared_preferences: ^2.2.2
+
+  # 외부 링크
+  url_launcher: ^6.2.1
+
+  # 카카오 로그인
+  kakao_flutter_sdk: ^1.9.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
