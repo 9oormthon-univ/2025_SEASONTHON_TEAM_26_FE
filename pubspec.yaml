@@ -19,7 +19,6 @@ dependencies:
   provider: ^6.1.1
 
   # 로컬 저장소
-  kpostal: ^1.1.0
   shared_preferences: ^2.2.2
 
   # 외부 링크

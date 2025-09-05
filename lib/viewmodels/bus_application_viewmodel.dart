@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kpostal/kpostal.dart';
 import '../services/api_service.dart';
-import '../models/bus_application.dart';
 import 'base_viewmodel.dart';
 
 class BusApplicationViewModel extends BaseViewModel {
@@ -35,35 +33,12 @@ class BusApplicationViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  // 주소 검색
-  Future<void> searchAddress(BuildContext context) async {
-    try {
-      // 타임아웃 설정 (30초)
-      Kpostal result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => KpostalView(
-            useLocalServer: false,
-            localPort: 1024,
-            callback: (Kpostal result) {
-              Navigator.pop(context, result);
-            },
-          ),
-        ),
-      ).timeout(Duration(seconds: 30));
-
-      if (result != null) {
-        addressController.text = result.address;
-        notifyListeners();
-      }
-    } catch (e) {
-      setError('주소 검색 중 오류가 발생했습니다: ${e.toString()}');
-    }
-  }
-
-  // 주소 검색 버튼 클릭 시 호출되는 메서드
+  // 주소 검색 버튼 클릭 시 호출되는 메서드 (현재는 기능 없음)
   Future<void> handleAddressSearch(BuildContext context) async {
-    await searchAddress(context);
+    // 주소 검색 기능이 제거됨 - 직접 입력만 가능
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('주소를 직접 입력해주세요.')),
+    );
   }
 
   // 버스 신청 처리
