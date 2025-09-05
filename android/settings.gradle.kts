@@ -32,5 +32,4 @@ dependencyResolutionManagement {
         maven("https://devrepo.kakao.com/nexus/repository/kakaomap-releases/")
     }
 }
-
 include(":app")

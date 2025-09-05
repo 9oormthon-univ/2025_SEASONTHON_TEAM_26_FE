@@ -1,0 +1,22 @@
+warning: LF will be replaced by CRLF in .idea/workspace.xml.
+The file will have its original line endings in your working directory.
+warning: LF will be replaced by CRLF in .metadata.
+The file will have its original line endings in your working directory.
+warning: LF will be replaced by CRLF in pubspec.yaml.
+The file will have its original line endings in your working directory.
+.idea/workspace.xml
+android/app/src/main/AndroidManifest.xml
+android/app/src/main/kotlin/com/example/seasonthon_team26_fe/MainActivity.kt
+lib/main.dart
+lib/screens/bus_application_screen.dart
+lib/screens/login_screen.dart
+lib/screens/signup_screen.dart
+lib/services/api_service.dart
+lib/theme/app_colors.dart
+lib/theme/app_constants.dart
+lib/theme/app_text_styles.dart
+lib/theme/app_themes.dart
+lib/widgets/custom_button.dart
+lib/widgets/custom_text_field.dart
+pubspec.yaml
+seasonthon_team26_fe.iml

@@ -18,10 +18,13 @@ dependencies:
   # 위치
   geolocator: ^14.0.2
 
-  # 카카오맵
+  # 카카오 지도
   kakao_maps_flutter: ^0.1.1
 
-  # API 통신
+  # 카카오 로그인/공통 SDK
+  kakao_flutter_sdk: ^1.9.6
+
+  # API 통신 (상위 버전 선택)
   http: ^1.2.2
 
   # 로컬 저장소
@@ -38,5 +41,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    # 필요한 이미지들을 명시적으로 나열 (와일드카드 대신)
     - assets/images/blue_dot.png
     - assets/images/stop_pin.png
