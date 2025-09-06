@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/bus.dart';
 import '../models/bus_status.dart';
 import '../models/bus_stop.dart';
+import '../theme/app_colors.dart';
 
 /// 공용: 상태 → 한글
 String _stateToKo(BusRunState s) {
@@ -44,7 +45,7 @@ class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Material(
-      color: Theme.of(context).cardColor,
+      color: AppColors.surface,
       child: child,
     );
   }
@@ -80,7 +81,7 @@ class NearestStopSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       elevation: 12,
-      color: Theme.of(context).cardColor,
+      color: AppColors.surface,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: CustomScrollView(
@@ -194,7 +195,7 @@ class BusOverviewSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       elevation: 12,
-      color: Theme.of(context).cardColor,
+      color: AppColors.surface,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: CustomScrollView(
@@ -290,7 +291,7 @@ class BusAtStopSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       elevation: 12,
-      color: Theme.of(context).cardColor,
+      color: AppColors.surface,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: CustomScrollView(

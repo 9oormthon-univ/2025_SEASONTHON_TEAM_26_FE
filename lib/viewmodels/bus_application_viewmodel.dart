@@ -70,7 +70,7 @@ class BusApplicationViewModel extends BaseViewModel {
       // 응답 처리
       if (result.containsKey('message') && !result.containsKey('code')) {
         // 200 OK - 신청 성공
-        showSuccessDialog(context, result['message'], () {
+        showSuccessDialog(context, '버스 신청이 완료되었습니다!', () {
           // 성공 다이얼로그 확인 후 신청 화면만 닫기 (BusApplicationStatusScreen의 .then() 콜백이 실행되도록)
           Navigator.pop(context); // 신청 화면 닫기
         });
@@ -100,9 +100,6 @@ class BusApplicationViewModel extends BaseViewModel {
   String? validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return '이름을 입력해주세요.';
-    }
-    if (value.trim().length < 2) {
-      return '이름은 2자 이상 입력해주세요.';
     }
     return null;
   }

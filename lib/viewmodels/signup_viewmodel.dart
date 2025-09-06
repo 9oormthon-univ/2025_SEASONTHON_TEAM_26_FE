@@ -149,8 +149,7 @@ class SignupViewModel extends BaseViewModel {
         // 200 OK - 회원가입 성공
         showSuccessDialog(context, result['message'], () {
           // 성공 다이얼로그 확인 후 로그인 화면으로 이동
-          Navigator.pop(context); // 다이얼로그 닫기
-          Navigator.pop(context); // 회원가입 화면 닫기
+          Navigator.pushReplacementNamed(context, '/login');
         });
         return true;
       } else if (result['code'] == 'CONFLICT') {
@@ -214,9 +213,6 @@ class SignupViewModel extends BaseViewModel {
   String? validateEmailPrefix(String? value) {
     if (value == null || value.trim().isEmpty) {
       return '이메일을 입력해주세요.';
-    }
-    if (!RegExp(r'^[a-zA-Z0-9._%+-]+$').hasMatch(value.trim())) {
-      return '올바른 이메일 형식이 아닙니다.';
     }
     return null;
   }

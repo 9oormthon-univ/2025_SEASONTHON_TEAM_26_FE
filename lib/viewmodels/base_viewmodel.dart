@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../theme/app_constants.dart';
+import '../theme/app_text_styles.dart';
 
 /// 모든 ViewModel의 기본 클래스
 /// 공통 기능들을 제공합니다.
@@ -60,78 +62,47 @@ abstract class BaseViewModel extends ChangeNotifier {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Container(
-            padding: EdgeInsets.all(32),
+            width: AppConstants.modalWidth,
+            height: AppConstants.modalHeight,
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // 구름 아이콘들
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Color(0xFFF97316).withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: Color(0xFFF97316).withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Color(0xFFF97316).withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                SizedBox(height: 24),
-                
-                // 버스 아이콘
+                // 그룸 이미지 (상단)
                 Container(
-                  width: 80,
-                  height: 60,
+                  width: 60,
+                  height: 40,
                   child: Image.asset(
-                    'assets/images/bus1.png',
+                    'assets/images/groom.png',
                     fit: BoxFit.contain,
                   ),
                 ),
                 
-                SizedBox(height: 24),
+                // 버스 프론트 이미지 (중앙)
+                Container(
+                  width: 80,
+                  height: 60,
+                  child: Image.asset(
+                    'assets/images/bus_front.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
                 
                 // 성공 메시지
                 Text(
                   message,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF374151),
-                  ),
+                  style: AppTextStyles.applicationCompleteModal,
                   textAlign: TextAlign.center,
                 ),
                 
-                SizedBox(height: 32),
-                
                 // 확인 버튼
                 Container(
-                  width: double.infinity,
-                  height: 48,
+                  width: AppConstants.modalButtonWidth,
+                  height: AppConstants.modalButtonHeight,
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).pop();
@@ -147,11 +118,7 @@ abstract class BaseViewModel extends ChangeNotifier {
                     ),
                     child: Text(
                       '확인',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppTextStyles.customButton,
                     ),
                   ),
                 ),

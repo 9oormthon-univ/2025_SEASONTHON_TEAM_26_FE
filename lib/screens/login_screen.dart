@@ -4,6 +4,9 @@ import "../widgets/custom_text_field.dart";
 import "../widgets/custom_button.dart";
 import "../widgets/kakao_button.dart";
 import "../viewmodels/login_viewmodel.dart";
+import "../theme/app_colors.dart";
+import "../theme/app_text_styles.dart";
+import "../theme/app_constants.dart";
 
 class LoginScreen extends StatelessWidget {
     const LoginScreen({super.key});
@@ -49,48 +52,49 @@ class _LoginScreenContent extends StatelessWidget {
 
     Widget _buildLoginScreen(BuildContext context, LoginViewModel viewModel) {
         return Scaffold(
-            backgroundColor: Color(0xFFFFF5DF), // 크림색 배경
+            backgroundColor: AppColors.background, // 크림색 배경
             body: SafeArea(
-                child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Column(
-                        children: [
-                            // 상단 여백
-                            SizedBox(height: 60),
-                            
-                            // 로고 및 타이틀
-                            _buildLogo(),
-                            
-                            SizedBox(height: 60),
-                            
-                            // 입력 필드들
-                            _buildInputFields(viewModel),
-                            
-                            SizedBox(height: 24),
-                            
-                            // 로그인 버튼
-                            _buildLoginButton(context, viewModel),
-                            
-                            SizedBox(height: 16),
-                            
-                            // 회원가입 링크
-                            _buildSignupLink(context),
-                            
-                            SizedBox(height: 40),
-                            
-                            // 구분선
-                            _buildDivider(),
-                            
-                            SizedBox(height: 24),
-                            
-                            // 카카오 로그인 버튼
-                            _buildKakaoButton(context, viewModel),
-                            
-                            Spacer(),
-                        ],
+                child: Center(
+                    child: SingleChildScrollView(
+                        child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                            child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                
+                                // 로고 및 타이틀
+                                _buildLogo(),
+                                
+                                SizedBox(height: 60),
+                                
+                                // 입력 필드들
+                                _buildInputFields(viewModel),
+                                
+                                SizedBox(height: 24),
+                                
+                                // 로그인 버튼
+                                _buildLoginButton(context, viewModel),
+                                
+                                SizedBox(height: 16),
+                                
+                                // 회원가입 링크
+                                _buildSignupLink(context),
+                                
+                                SizedBox(height: 40),
+                                
+                                // 구분선
+                                _buildDivider(),
+                                
+                                SizedBox(height: 24),
+                                
+                                // 카카오 로그인 버튼
+                                _buildKakaoButton(context, viewModel),
+                            ],
+                        ),
                     ),
                 ),
             ),
+          ),
         );
     }
 
@@ -98,82 +102,20 @@ class _LoginScreenContent extends StatelessWidget {
         return Column(
             children: [
                 // Dream Drivers 로고
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                        // D 아이콘
-                        Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                                color: Color(0xFFF97316), // 오렌지색
-                                borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                                child: Text(
-                                    'D',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                    ),
-                                ),
-                            ),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                            'ream',
-                            style: TextStyle(
-                                color: Color(0xFFF97316),
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                            ),
-                        ),
-                        SizedBox(width: 8),
-                        Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                                color: Color(0xFFF97316), // 오렌지색
-                                borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                                child: Text(
-                                    'D',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                    ),
-                                ),
-                            ),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                            'rivers',
-                            style: TextStyle(
-                                color: Color(0xFFF97316),
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                            ),
-                        ),
-                    ],
+                Image.asset(
+                    'assets/images/dreamdrivers_orange.png',
+                    height: 60,
+                    fit: BoxFit.contain,
                 ),
                 SizedBox(height: 16),
                 // 환영 메시지
                 Text(
                     '꿈과 희망을 싣고 가는',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 16,
-                    ),
+                    style: AppTextStyles.loginText,
                 ),
                 Text(
                     '꿈마중 버스에 오신 것을 환영합니다!',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 16,
-                    ),
+                    style: AppTextStyles.loginText,
                 ),
             ],
         );
@@ -184,24 +126,24 @@ class _LoginScreenContent extends StatelessWidget {
             children: [
                 // 아이디 입력 필드
                 Container(
-                    width: double.infinity,
-                    height: 56,
+                    width: AppConstants.inputFieldWidth,
+                    height: AppConstants.inputFieldHeight,
                     decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFE5E7EB)),
+                        border: Border.all(color: AppColors.grey300),
                     ),
                     child: Row(
                         children: [
                             SizedBox(width: 16),
-                            Icon(Icons.person_outline, color: Color(0xFF9CA3AF), size: 20),
+                            Icon(Icons.person_outline, color: AppColors.textHint, size: 20),
                             SizedBox(width: 12),
                             Expanded(
                                 child: TextField(
                                     controller: viewModel.idController,
                                     decoration: InputDecoration(
                                         hintText: '아이디 입력',
-                                        hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                                        hintStyle: AppTextStyles.inputHint,
                                         border: InputBorder.none,
                                     ),
                                 ),
@@ -212,17 +154,17 @@ class _LoginScreenContent extends StatelessWidget {
                 SizedBox(height: 16),
                 // 비밀번호 입력 필드
                 Container(
-                    width: double.infinity,
-                    height: 56,
+                    width: AppConstants.inputFieldWidth,
+                    height: AppConstants.inputFieldHeight,
                     decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFE5E7EB)),
+                        border: Border.all(color: AppColors.grey300),
                     ),
                     child: Row(
                         children: [
                             SizedBox(width: 16),
-                            Icon(Icons.lock_outline, color: Color(0xFF9CA3AF), size: 20),
+                            Icon(Icons.lock_outline, color: AppColors.textHint, size: 20),
                             SizedBox(width: 12),
                             Expanded(
                                 child: TextField(
@@ -230,7 +172,7 @@ class _LoginScreenContent extends StatelessWidget {
                                     obscureText: !viewModel.isPasswordVisible,
                                     decoration: InputDecoration(
                                         hintText: '비밀번호 입력',
-                                        hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                                        hintStyle: AppTextStyles.inputHint,
                                         border: InputBorder.none,
                                     ),
                                 ),
@@ -240,7 +182,7 @@ class _LoginScreenContent extends StatelessWidget {
                                     viewModel.isPasswordVisible 
                                         ? Icons.visibility_outlined 
                                         : Icons.visibility_off_outlined, 
-                                    color: Color(0xFF9CA3AF), 
+                                    color: AppColors.textHint, 
                                     size: 20
                                 ),
                                 onPressed: () => viewModel.togglePasswordVisibility(),
@@ -255,10 +197,10 @@ class _LoginScreenContent extends StatelessWidget {
 
     Widget _buildLoginButton(BuildContext context, LoginViewModel viewModel) {
         return Container(
-            width: double.infinity,
-            height: 56,
+            width: AppConstants.buttonWidth,
+            height: AppConstants.buttonHeight,
             decoration: BoxDecoration(
-                color: Color(0xFFF97316), // 오렌지 500
+                color: AppColors.primary, // 오렌지 500
                 borderRadius: BorderRadius.circular(12),
             ),
             child: ElevatedButton(
@@ -272,11 +214,7 @@ class _LoginScreenContent extends StatelessWidget {
                 ),
                 child: Text(
                     viewModel.isLoading ? '로그인 중...' : '로그인',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                    ),
+                    style: AppTextStyles.customButton,
                 ),
             ),
         );
@@ -291,11 +229,7 @@ class _LoginScreenContent extends StatelessWidget {
                 },
                 child: Text(
                     '회원가입',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                        decoration: TextDecoration.underline,
-                    ),
+                    style: AppTextStyles.signupTextButton,
                 ),
             ),
         );
@@ -304,28 +238,25 @@ class _LoginScreenContent extends StatelessWidget {
     Widget _buildDivider() {
         return Row(
             children: [
-                Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
+                Expanded(child: Divider(color: Color(0xFFFB923C), thickness: 1)), // Orange-400
                 Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
                         '또는',
-                        style: TextStyle(
-                            color: Color(0xFF6B7280),
-                            fontSize: 14,
-                        ),
+                        style: AppTextStyles.dividerText,
                     ),
                 ),
-                Expanded(child: Divider(color: Color(0xFFE5E7EB), thickness: 1)),
+                Expanded(child: Divider(color: Color(0xFFFB923C), thickness: 1)), // Orange-400
             ],
         );
     }
 
     Widget _buildKakaoButton(BuildContext context, LoginViewModel viewModel) {
         return Container(
-            width: double.infinity,
-            height: 56,
+            width: AppConstants.buttonWidth,
+            height: AppConstants.buttonHeight,
             decoration: BoxDecoration(
-                color: Color(0xFFFEE500), // 카카오 옐로우
+                color: AppColors.kakaoYellow, // 카카오 옐로우
                 borderRadius: BorderRadius.circular(12),
             ),
             child: ElevatedButton(
@@ -352,11 +283,7 @@ class _LoginScreenContent extends StatelessWidget {
                         SizedBox(width: 12),
                         Text(
                             '카카오로 계속하기',
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                            ),
+                            style: AppTextStyles.kakaoButton,
                         ),
                     ],
                 ),

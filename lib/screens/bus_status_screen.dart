@@ -21,6 +21,10 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
   final GlobalKey<KakaoMapViewState> _mapKey = GlobalKey<KakaoMapViewState>();
   final DraggableScrollableController _sheetCtrl = DraggableScrollableController();
 
+  // 시트 크기 한계값(DraggableScrollableSheet와 동일하게 유지)
+  static const double _minSheet = 0.12;
+  static const double _maxSheet = 0.60;
+
   final BusApi _api = MockBusApi(); // TODO: 실제 API 구현체로 교체
 
   // 검색/선택 상태
@@ -65,6 +69,34 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     super.dispose();
   }
 
+  // ───────── 헤더 드래그 → 시트 높이 제어 로직 추가 ─────────
+  void _onHeaderDragUpdate(DragUpdateDetails d) {
+    // 화면 높이 대비 드래그 픽셀을 비율(size)로 변환
+    final screenH = MediaQuery.of(context).size.height;
+    if (screenH <= 0) return;
+    final dy = d.delta.dy; // 위로 드래그 시 음수
+    final next = (_sheetCtrl.size - dy / screenH).clamp(_minSheet, _maxSheet);
+    _sheetCtrl.jumpTo(next);
+  }
+
+  void _onHeaderDragEnd(DragEndDetails d) {
+    // 속도에 따라 약간 스냅 느낌만 주기(선택)
+    final v = d.velocity.pixelsPerSecond.dy; // 위로 빠르게 드래그: 음수
+    double target = _sheetCtrl.size;
+    if (v.abs() > 600) {
+      target = (v < 0) ? (_sheetCtrl.size + 0.18) : (_sheetCtrl.size - 0.18);
+    }
+    target = target.clamp(_minSheet, _maxSheet);
+    if ((target - _sheetCtrl.size).abs() > 0.02) {
+      _sheetCtrl.animateTo(
+        target,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+  // ─────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final hasBus = _selectedBus != null;
@@ -87,7 +119,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
           Positioned.fill(
             child: KakaoMapView(
               key: _mapKey,
-              onStopMarkerTap: (stop) async {
+              onStopMarkerTap: (그만) async {
                 // 버스 선택 전에는 마커 탭 → 전환하지 않음 (근접 모드 유지)
                 if (_selectedBus == null) return;
 
@@ -136,8 +168,8 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
           DraggableScrollableSheet(
             controller: _sheetCtrl,
             initialChildSize: 0.20,
-            minChildSize: 0.12,
-            maxChildSize: 0.60,
+            minChildSize: _minSheet,
+            maxChildSize: _maxSheet,
             builder: (context, controller) {
               // (A) 검색 전: 가까운 정류장 요약 + 그 정류장을 지나는 버스 목록
               if (!hasBus) {
@@ -148,6 +180,9 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                   stop: _nearestStop,
                   buses: _busesAtNearestStop,
                   onTapBus: _onSelectBusFromNearest,
+                  // ✅ 헤더 드래그 콜백 전달
+                  onHeaderDragUpdate: _onHeaderDragUpdate,
+                  onHeaderDragEnd: _onHeaderDragEnd,
                 );
               }
 
@@ -160,6 +195,9 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                   routeStops: _routeStops,
                   currentStopId: _busCurrentStopId,
                   onTapStop: _onTapStopFromList,
+                  // ✅ 헤더 드래그 콜백 전달
+                  onHeaderDragUpdate: _onHeaderDragUpdate,
+                  onHeaderDragEnd: _onHeaderDragEnd,
                 );
               }
 
@@ -171,6 +209,9 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                 routeStops: _routeStops,
                 currentStopId: _busCurrentStopId,
                 onTapStop: _onTapStopFromList,
+                // ✅ 헤더 드래그 콜백 전달
+                onHeaderDragUpdate: _onHeaderDragUpdate,
+                onHeaderDragEnd: _onHeaderDragEnd,
               );
             },
           ),
@@ -510,6 +551,29 @@ class _SearchResultCard extends StatelessWidget {
   }
 }
 
+// 공통: 헤더 드래그 영역 Wrapper
+class _HeaderDraggable extends StatelessWidget {
+  const _HeaderDraggable({
+    required this.child,
+    required this.onUpdate,
+    required this.onEnd,
+  });
+
+  final Widget child;
+  final GestureDragUpdateCallback onUpdate;
+  final GestureDragEndCallback onEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque, // 빈 공간도 드래그 감지
+      onVerticalDragUpdate: onUpdate,
+      onVerticalDragEnd: onEnd,
+      child: child,
+    );
+  }
+}
+
 class _NearestStopSheet extends StatelessWidget {
   const _NearestStopSheet({
     required this.controller,
@@ -518,6 +582,8 @@ class _NearestStopSheet extends StatelessWidget {
     required this.stop,
     required this.buses,
     required this.onTapBus,
+    required this.onHeaderDragUpdate,
+    required this.onHeaderDragEnd,
   });
 
   final ScrollController controller;
@@ -526,6 +592,10 @@ class _NearestStopSheet extends StatelessWidget {
   final Stop? stop;
   final List<Bus> buses;
   final ValueChanged<Bus> onTapBus;
+
+  // ✅ 추가: 헤더 드래그 콜백
+  final GestureDragUpdateCallback onHeaderDragUpdate;
+  final GestureDragEndCallback onHeaderDragEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -537,26 +607,48 @@ class _NearestStopSheet extends StatelessWidget {
         controller: controller,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         children: [
-          Center(
-            child: Container(
-              width: 36, height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(2)),
+          // 그립 + 제목 영역 전체를 드래그 가능하게
+          _HeaderDraggable(
+            onUpdate: onHeaderDragUpdate,
+            onEnd: onHeaderDragEnd,
+            child: Column(
+              children: [
+                Center(
+                  child: Container(
+                    width: 36, height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('가까운 정류장', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(height: 6),
+                if (loading) const LinearProgressIndicator(),
+                if (error != null) Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(error!, style: const TextStyle(color: Colors.red)),
+                ),
+                if (!loading && error == null && stop != null) ...[
+                  ListTile(
+                    leading: const Icon(Icons.place),
+                    title: Text(stop!.name),
+                    subtitle: Text('(${stop!.lat.toStringAsFixed(5)}, ${stop!.lng.toStringAsFixed(5)})'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(height: 8),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('이 정류장을 지나는 버스', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
             ),
           ),
-          const Text('가까운 정류장', style: TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          if (loading) const LinearProgressIndicator(),
-          if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
+
           if (!loading && error == null && stop != null) ...[
-            ListTile(
-              leading: const Icon(Icons.place),
-              title: Text(stop!.name),
-              subtitle: Text('(${stop!.lat.toStringAsFixed(5)}, ${stop!.lng.toStringAsFixed(5)})'),
-            ),
-            const SizedBox(height: 8),
-            const Text('이 정류장을 지나는 버스', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
             if (buses.isEmpty)
               const Text('해당 정류장을 운행하는 버스가 없습니다.', style: TextStyle(color: Colors.black54)),
             ...buses.map(
@@ -585,6 +677,8 @@ class _BusOverviewSheet extends StatelessWidget {
     required this.routeStops,
     required this.currentStopId,
     required this.onTapStop,
+    required this.onHeaderDragUpdate,
+    required this.onHeaderDragEnd,
   });
 
   final ScrollController controller;
@@ -593,6 +687,10 @@ class _BusOverviewSheet extends StatelessWidget {
   final List<Stop> routeStops;
   final int? currentStopId;
   final ValueChanged<Stop> onTapStop;
+
+  // ✅ 추가: 헤더 드래그 콜백
+  final GestureDragUpdateCallback onHeaderDragUpdate;
+  final GestureDragEndCallback onHeaderDragEnd;
 
   String _stateToKo(BusRunState s) {
     switch (s) {
@@ -611,26 +709,37 @@ class _BusOverviewSheet extends StatelessWidget {
       borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       child: Column(
         children: [
-          const SizedBox(height: 12),
-          Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
+          // 헤더 전체 드래그 가능
+          _HeaderDraggable(
+            onUpdate: onHeaderDragUpdate,
+            onEnd: onHeaderDragEnd,
+            child: Column(
               children: [
-                const Icon(Icons.directions_bus_filled),
-                const SizedBox(width: 8),
-                Expanded(child: Text(selectedBus.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
-                if (runState != null) Chip(label: Text(_stateToKo(runState!))),
+                const SizedBox(height: 12),
+                Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.directions_bus_filled),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(selectedBus.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                      if (runState != null) Chip(label: Text(_stateToKo(runState!))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Align(alignment: Alignment.centerLeft, child: Text('노선 정류장', style: TextStyle(fontWeight: FontWeight.w600))),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Align(alignment: Alignment.centerLeft, child: Text('노선 정류장', style: TextStyle(fontWeight: FontWeight.w600))),
-          ),
+
+          // 리스트만 스크롤
           Expanded(
             child: ListView.builder(
               controller: controller,
@@ -662,6 +771,8 @@ class _BusAtStopSheet extends StatelessWidget {
     required this.routeStops,
     required this.currentStopId,
     required this.onTapStop,
+    required this.onHeaderDragUpdate,
+    required this.onHeaderDragEnd,
   });
 
   final ScrollController controller;
@@ -670,6 +781,10 @@ class _BusAtStopSheet extends StatelessWidget {
   final List<Stop> routeStops;
   final int? currentStopId;
   final ValueChanged<Stop> onTapStop;
+
+  // ✅ 추가: 헤더 드래그 콜백
+  final GestureDragUpdateCallback onHeaderDragUpdate;
+  final GestureDragEndCallback onHeaderDragEnd;
 
   String _stateToKo(BusRunState s) {
     switch (s) {
@@ -688,42 +803,51 @@ class _BusAtStopSheet extends StatelessWidget {
       borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       child: Column(
         children: [
-          const SizedBox(height: 12),
-          Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 12),
+          // 헤더 전체 드래그 가능
+          _HeaderDraggable(
+            onUpdate: onHeaderDragUpdate,
+            onEnd: onHeaderDragEnd,
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 12),
 
-          // 헤더: 선택 정류장 정보 (고정)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                const Icon(Icons.place),
-                const SizedBox(width: 8),
-                Expanded(child: Text(selectedStop.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
-                Chip(label: Text(_stateToKo(statusAtStop.state))),
+                // 헤더: 선택 정류장 정보 (고정)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.place),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(selectedStop.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                      Chip(label: Text(_stateToKo(statusAtStop.state))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      if (statusAtStop.etaToArrive != null)
+                        Expanded(child: _kv('도착 예정', '${statusAtStop.etaToArrive!.inMinutes}분 후')),
+                      if (statusAtStop.remainingDwell != null)
+                        Expanded(child: _kv('정차 잔여', '${statusAtStop.remainingDwell!.inMinutes}분')),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Align(alignment: Alignment.centerLeft, child: Text('노선 정류장', style: TextStyle(fontWeight: FontWeight.w600))),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                if (statusAtStop.etaToArrive != null)
-                  Expanded(child: _kv('도착 예정', '${statusAtStop.etaToArrive!.inMinutes}분 후')),
-                if (statusAtStop.remainingDwell != null)
-                  Expanded(child: _kv('정차 잔여', '${statusAtStop.remainingDwell!.inMinutes}분')),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Divider(),
 
           // 리스트만 스크롤
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            child: Align(alignment: Alignment.centerLeft, child: Text('노선 정류장', style: TextStyle(fontWeight: FontWeight.w600))),
-          ),
           Expanded(
             child: ListView.builder(
               controller: controller,

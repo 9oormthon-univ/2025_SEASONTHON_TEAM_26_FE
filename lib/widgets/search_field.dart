@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_constants.dart';
 
 class SearchField extends StatefulWidget {
     final String hintText;
@@ -102,9 +105,9 @@ class _SearchFieldState extends State<SearchField> {
                 
                 return Container(
                     width: double.infinity,
-                    height: 52,
+                    height: AppConstants.searchFieldHeight,
                     decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: AppColors.grey50, // Grayscale/Gray-50
                         borderRadius: BorderRadius.circular(12),
                     ),
                     child: TextField(
@@ -115,17 +118,12 @@ class _SearchFieldState extends State<SearchField> {
                             // 외부 controller도 동기화
                             widget.controller.text = value;
                         },
+                        style: AppTextStyles.inputText, // 입력 텍스트 스타일
                         decoration: InputDecoration(
                             hintText: widget.hintText,
+                            hintStyle: AppTextStyles.inputHint, // 힌트 텍스트 스타일
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            suffixIcon: IconButton(
-                                icon: Icon(
-                                    Icons.search,
-                                    color: Colors.black,
-                                ),
-                                onPressed: widget.onSearchPressed,
-                            ),
                         ),
                         onTap: () {
                             if (_isReadOnly) {

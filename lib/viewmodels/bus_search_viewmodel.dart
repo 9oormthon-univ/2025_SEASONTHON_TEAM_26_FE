@@ -45,6 +45,7 @@ class BusSearchViewModel extends BaseViewModel {
       // 검색 결과가 있으면 첫 번째 결과를 선택된 지역으로 설정
       if (response.items.isNotEmpty) {
         _selectedRegion = response.items.first;
+        print('검색 성공: ${_selectedRegion?.name}'); // 디버깅용 로그
       }
       
       notifyListeners();
@@ -52,6 +53,7 @@ class BusSearchViewModel extends BaseViewModel {
       // 검색 결과가 없으면 에러 메시지
       if (response.items.isEmpty) {
         setError('검색 결과가 없습니다.');
+        print('검색 결과 없음: $keyword'); // 디버깅용 로그
       }
     } catch (e) {
       setError('검색 중 오류가 발생했습니다: ${e.toString()}');

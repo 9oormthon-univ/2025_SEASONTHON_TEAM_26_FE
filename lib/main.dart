@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kakao_maps_flutter/kakao_maps_flutter.dart'; // Kakao Map SDK
+// import 'package:kakao_maps_flutter/kakao_maps_flutter.dart'; // Kakao Map SDK - 에뮬레이터 호환성 문제로 주석 처리
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';  // Kakao Login etc.
 
 import 'screens/login_screen.dart';
@@ -10,13 +10,17 @@ import 'screens/bus_application/bus_search_screen.dart';
 import 'screens/bus_application/bus_application_status_screen.dart';
 import 'screens/bus_application/bus_application_screen.dart';
 
-import 'theme/app_themes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Kakao Map SDK 초기화 (네이티브 앱 키)
-  await KakaoMapsFlutter.init('7388c32d83d1c4266b0af485cefbacca');
+  // Kakao SDK 초기화 (네이티브 앱 키)
+  KakaoSdk.init(
+    nativeAppKey: '028c043da80499d5f5a4091190738ab0',
+  );
+
+  // Kakao Map SDK 초기화 (네이티브 앱 키) - 에뮬레이터 호환성 문제로 주석 처리
+  // await KakaoMapsFlutter.init('7388c32d83d1c4266b0af485cefbacca');
 
   runApp(const MyApp());
 }
@@ -28,9 +32,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '꿈마중 버스',
-      theme: AppThemes.lightTheme,
-      darkTheme: AppThemes.darkTheme,
-      themeMode: ThemeMode.light, // 라이트 테마 기본
       initialRoute: '/login',     // develop 브랜치 정책 유지
       routes: {
         '/login': (context) => LoginScreen(),

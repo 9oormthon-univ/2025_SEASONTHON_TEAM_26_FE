@@ -4,7 +4,7 @@ import '../models/region.dart';
 import '../models/bus_application_summary.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://your-api-base-url.com'; // 실제 API URL로 변경
+  static const String baseUrl = 'http://11770efdbb28.ngrok-free.app'; // ngrok 백엔드 서버 URL
   
   // 테스트용 데이터 저장소 (실제로는 서버에서 관리)
   static Map<String, Map<String, dynamic>> _testData = {};
@@ -197,9 +197,9 @@ class ApiService {
         'region_name': '세종특별자치시',
         'date': date ?? '2025-01-15',
         'capacity': 50,
-        'appliedCount': 8,
-        'remaining': 42,
-        'fillRatePercent': 16.0,
+        'appliedCount': 49,
+        'remaining': 1,
+        'fillRatePercent': 98.0,
       },
       };
     }
@@ -242,39 +242,17 @@ class ApiService {
     */
   }
 
-  // 로그인 API (테스트용 - 실제 API 연결 전까지)
+  // 로그인 API - 백엔드 연동
   static Future<Map<String, dynamic>> login({
     required String userId,
     required String password,
   }) async {
-    // 실제 API 연결 전까지 테스트용 데이터 사용
-    await Future.delayed(Duration(milliseconds: 500)); // 로딩 시뮬레이션
-    
-    // 사용자 인증 확인 (등록된 사용자들 중에서)
-    if (_registeredUsers.containsKey(userId) && _registeredUsers[userId] == password) {
-      // 200 OK - 로그인 성공
-      return {
-        'message': '로그인 성공',
-        'userId': userId,
-        'accessToken': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test_access_token_${DateTime.now().millisecondsSinceEpoch}',
-        'refreshToken': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
-        'tokenType': 'Bearer',
-        'expiresIn': 3600,
-      };
-    } else {
-      // 401 Unauthorized - 인증 실패
-      return {
-        'code': 'UNAUTHORIZED',
-        'message': '아이디 또는 비밀번호가 일치하지 않습니다.',
-      };
-    }
-
-    /* 실제 API 연결 시 사용할 코드
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true', // ngrok 브라우저 경고 스킵
         },
         body: json.encode({
           'userId': userId,
@@ -300,10 +278,9 @@ class ApiService {
     } catch (e) {
       return {
         'code': 'NETWORK_ERROR',
-        'message': '네트워크 오류가 발생했습니다.',
+        'message': '네트워크 오류가 발생했습니다: $e',
       };
     }
-    */
   }
 
   // 아이디 중복 검사 API (테스트용 - 실제 API 연결 전까지)
@@ -353,38 +330,19 @@ class ApiService {
     */
   }
 
-  // 회원가입 API (테스트용 - 실제 API 연결 전까지)
+  // 회원가입 API - 백엔드 연동
   static Future<Map<String, dynamic>> signup({
     required String name,
     required String userId,
     required String password,
     required String email,
   }) async {
-    // 실제 API 연결 전까지 테스트용 데이터 사용
-    await Future.delayed(Duration(milliseconds: 500)); // 로딩 시뮬레이션
-    
-    // 중복 검사 (409 Conflict)
-    if (_registeredUsers.containsKey(userId)) {
-      return {
-        'code': 'CONFLICT',
-        'message': '이미 사용 중인 아이디입니다.',
-      };
-    }
-    
-    // 회원가입 성공 - 사용자 정보 저장
-    _registeredUsers[userId] = password;
-    
-    // 회원가입 성공 (200 OK)
-    return {
-      'message': '회원가입이 성공적으로 완료되었습니다.',
-    };
-
-    /* 실제 API 연결 시 사용할 코드
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register'),
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true', // ngrok 브라우저 경고 스킵
         },
         body: json.encode({
           'name': name,
@@ -418,45 +376,21 @@ class ApiService {
     } catch (e) {
       return {
         'code': 'NETWORK_ERROR',
-        'message': '네트워크 오류가 발생했습니다.',
+        'message': '네트워크 오류가 발생했습니다: $e',
       };
     }
-    */
   }
 
-  // 카카오 로그인 API (테스트용 - 실제 API 연결 전까지)
+  // 카카오 로그인 API - 백엔드 연동
   static Future<Map<String, dynamic>> kakaoLogin({
     required String code,
   }) async {
-    // 실제 API 연결 전까지 테스트용 데이터 사용
-    await Future.delayed(Duration(milliseconds: 500)); // 로딩 시뮬레이션
-    
-    // 테스트용 카카오 인증 코드 검증
-    if (code.isEmpty || code == 'invalid_code') {
-      // 400 Bad Request - 유효하지 않은 인가 코드
-      return {
-        'code': 'BAD_REQUEST',
-        'message': '유효하지 않은 인가 코드입니다.',
-      };
-    }
-    
-    // 200 OK - 카카오 로그인 성공
-    return {
-      'message': '카카오 로그인이 성공적으로 완료되었습니다.',
-      'accessToken': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.kakao_access_token_${DateTime.now().millisecondsSinceEpoch}',
-      'refreshToken': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.kakao_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
-      'tokenType': 'Bearer',
-      'expiresIn': 3600,
-      'userId': 'kakao_user_${DateTime.now().millisecondsSinceEpoch}',
-      'name': '카카오사용자',
-    };
-
-    /* 실제 API 연결 시 사용할 코드
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/kakao'),
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true', // ngrok 브라우저 경고 스킵
         },
         body: json.encode({
           'code': code,
@@ -481,10 +415,9 @@ class ApiService {
     } catch (e) {
       return {
         'code': 'NETWORK_ERROR',
-        'message': '네트워크 오류가 발생했습니다.',
+        'message': '네트워크 오류가 발생했습니다: $e',
       };
     }
-    */
   }
 
   // 토큰 재발급 API (테스트용 - 실제 API 연결 전까지)

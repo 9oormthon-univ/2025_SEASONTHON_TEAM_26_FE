@@ -27,6 +27,7 @@ class BusApplicationStatusViewModel extends BaseViewModel {
 
   // 초기화
   void initialize(String? regionName, {String? regionId, Map<String, double>? center}) {
+    print('BusApplicationStatusViewModel 초기화: regionName=$regionName, regionId=$regionId'); // 디버깅용 로그
     _regionName = regionName;
     _regionId = regionId;
     _center = center;
@@ -39,6 +40,7 @@ class BusApplicationStatusViewModel extends BaseViewModel {
 
   // 버스 신청 현황 데이터 로드
   Future<void> loadBusApplicationSummary({String? regionId}) async {
+    print('loadBusApplicationSummary 호출: regionId=$regionId'); // 디버깅용 로그
     setLoading(true);
     clearError();
 
@@ -46,6 +48,7 @@ class BusApplicationStatusViewModel extends BaseViewModel {
       final response = await ApiService.getBusApplicationSummary(
         regionId: regionId ?? '1', // 기본값은 서울
       );
+      print('API 응답 받음: ${response.regionName}, ${response.appliedCount}/${response.capacity}'); // 디버깅용 로그
       _summary = response;
       notifyListeners();
     } catch (e) {

@@ -142,7 +142,7 @@ class LoginViewModel extends BaseViewModel {
       // 사용자 정보 가져오기
       final User user = await UserApi.instance.me();
       
-      // 서버에 카카오 로그인 요청
+      // 서버에 카카오 로그인 요청 (카카오 access token 전송)
       final result = await ApiService.kakaoLogin(code: token.accessToken);
       
       // API 명세서에 따른 응답 처리
@@ -151,7 +151,7 @@ class LoginViewModel extends BaseViewModel {
         final accessToken = result['accessToken'];
         final refreshToken = result['refreshToken'];
         final userId = result['userId'];
-        final name = result['name'];
+        final name = result['name'] ?? user.kakaoAccount?.profile?.nickname ?? '카카오사용자';
         final expiresIn = result['expiresIn'] ?? 3600;
         
         // 토큰 저장

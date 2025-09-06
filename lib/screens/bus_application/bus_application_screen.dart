@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../viewmodels/bus_application_viewmodel.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_text_styles.dart';
+import '../../theme/app_constants.dart';
 
 class BusApplicationScreen extends StatelessWidget {
     final VoidCallback? onApplicationComplete; // 신청 완료 콜백
@@ -82,21 +85,24 @@ class _BusApplicationScreenContent extends StatelessWidget {
 
     Widget _buildBusApplicationScreen(BuildContext context, BusApplicationViewModel viewModel) {
         return Scaffold(
-            backgroundColor: Color(0xFFFFF5DF), // 크림색 배경
+            backgroundColor: AppColors.background, // 크림색 배경
             appBar: AppBar(
-                backgroundColor: Colors.transparent,
+                backgroundColor: AppColors.appBarBackground,
                 elevation: 0,
+                bottom: PreferredSize(
+                    preferredSize: Size.fromHeight(1.0),
+                    child: Container(
+                        height: 1.0,
+                        color: AppColors.primaryDisabled,
+                    ),
+                ),
                 leading: IconButton(
-                    icon: Icon(Icons.arrow_back, color: Color(0xFF6B7280)),
+                    icon: Icon(Icons.arrow_back, color: AppColors.primary),
                     onPressed: () => Navigator.pop(context),
                 ),
                 title: Text(
                     '버스 신청',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                    ),
+                    style: AppTextStyles.appBarTitle,
                 ),
                 centerTitle: true,
             ),
@@ -107,7 +113,7 @@ class _BusApplicationScreenContent extends StatelessWidget {
                         key: viewModel.formKey,
                         child: ListView(
                             children: [
-                                SizedBox(height: 20),
+                                SizedBox(height: 60),
                                 
                                 // 이름 입력
                                 _buildNameField(viewModel),
@@ -200,31 +206,46 @@ class _BusApplicationScreenContent extends StatelessWidget {
         return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Text(
-                    '이름',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                    ),
+                Row(
+                    children: [
+                        Image.asset(
+                            'assets/images/label.png',
+                            width: 16,
+                            height: 16,
+                            fit: BoxFit.contain,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                            '이름',
+                            style: AppTextStyles.inputLabel,
+                        ),
+                    ],
                 ),
                 SizedBox(height: 8),
-                Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFE5E7EB)),
-                    ),
-                    child: TextFormField(
-                        controller: viewModel.nameController,
-                        validator: viewModel.validateName,
-                        decoration: InputDecoration(
-                            hintText: '이름을 입력해주세요',
-                            hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                Center(
+                    child: Container(
+                        width: AppConstants.inputFieldWidth,
+                        height: AppConstants.inputFieldHeight,
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: viewModel.nameController.text.isNotEmpty 
+                                    ? AppColors.primaryLight 
+                                    : AppColors.grey300,
+                                width: 1.0,
+                            ),
+                        ),
+                        child: TextFormField(
+                            controller: viewModel.nameController,
+                            validator: viewModel.validateName,
+                            onChanged: (value) => viewModel.notifyListeners(),
+                            decoration: InputDecoration(
+                                hintText: '이름을 입력해주세요',
+                                hintStyle: AppTextStyles.inputHint,
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            ),
                         ),
                     ),
                 ),
@@ -236,32 +257,47 @@ class _BusApplicationScreenContent extends StatelessWidget {
         return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Text(
-                    '나이',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                    ),
+                Row(
+                    children: [
+                        Image.asset(
+                            'assets/images/label.png',
+                            width: 16,
+                            height: 16,
+                            fit: BoxFit.contain,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                            '나이',
+                            style: AppTextStyles.inputLabel,
+                        ),
+                    ],
                 ),
                 SizedBox(height: 8),
-                Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFE5E7EB)),
-                    ),
-                    child: TextFormField(
-                        controller: viewModel.ageController,
-                        validator: viewModel.validateAge,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                            hintText: '나이를 입력해주세요',
-                            hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                Center(
+                    child: Container(
+                        width: AppConstants.inputFieldWidth,
+                        height: AppConstants.inputFieldHeight,
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: viewModel.ageController.text.isNotEmpty 
+                                    ? AppColors.primaryLight 
+                                    : AppColors.grey300,
+                                width: 1.0,
+                            ),
+                        ),
+                        child: TextFormField(
+                            controller: viewModel.ageController,
+                            validator: viewModel.validateAge,
+                            keyboardType: TextInputType.number,
+                            onChanged: (value) => viewModel.notifyListeners(),
+                            decoration: InputDecoration(
+                                hintText: '나이를 입력해주세요',
+                                hintStyle: AppTextStyles.inputHint,
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            ),
                         ),
                     ),
                 ),
@@ -273,32 +309,47 @@ class _BusApplicationScreenContent extends StatelessWidget {
         return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Text(
-                    '전화번호',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                    ),
+                Row(
+                    children: [
+                        Image.asset(
+                            'assets/images/label.png',
+                            width: 16,
+                            height: 16,
+                            fit: BoxFit.contain,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                            '전화번호',
+                            style: AppTextStyles.inputLabel,
+                        ),
+                    ],
                 ),
                 SizedBox(height: 8),
-                Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFE5E7EB)),
-                    ),
-                    child: TextFormField(
-                        controller: viewModel.phoneNumberController,
-                        validator: viewModel.validatePhoneNumber,
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                            hintText: '010-1234-5678',
-                            hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                Center(
+                    child: Container(
+                        width: AppConstants.inputFieldWidth,
+                        height: AppConstants.inputFieldHeight,
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: viewModel.phoneNumberController.text.isNotEmpty 
+                                    ? AppColors.primaryLight 
+                                    : AppColors.grey300,
+                                width: 1.0,
+                            ),
+                        ),
+                        child: TextFormField(
+                            controller: viewModel.phoneNumberController,
+                            validator: viewModel.validatePhoneNumber,
+                            keyboardType: TextInputType.phone,
+                            onChanged: (value) => viewModel.notifyListeners(),
+                            decoration: InputDecoration(
+                                hintText: '010-1234-5678',
+                                hintStyle: AppTextStyles.inputHint,
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            ),
                         ),
                     ),
                 ),
@@ -310,65 +361,76 @@ class _BusApplicationScreenContent extends StatelessWidget {
         return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Text(
-                    '주소',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                    ),
-                ),
-                SizedBox(height: 8),
                 Row(
                     children: [
-                        Expanded(
-                            child: Container(
-                                height: 56,
+                        Image.asset(
+                            'assets/images/label.png',
+                            width: 16,
+                            height: 16,
+                            fit: BoxFit.contain,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                            '주소',
+                            style: AppTextStyles.inputLabel,
+                        ),
+                    ],
+                ),
+                SizedBox(height: 8),
+                Center(
+                    child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                            Container(
+                                width: AppConstants.inputFieldWidth - 100,
+                                height: AppConstants.inputFieldHeight,
                                 decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Color(0xFFE5E7EB)),
+                                    border: Border.all(
+                                        color: viewModel.addressController.text.isNotEmpty 
+                                            ? AppColors.primaryLight 
+                                            : AppColors.grey300,
+                                        width: 1.0,
+                                    ),
                                 ),
                                 child: TextFormField(
                                     controller: viewModel.addressController,
                                     validator: viewModel.validateAddress,
+                                    onChanged: (value) => viewModel.notifyListeners(),
                                     decoration: InputDecoration(
                                         hintText: '주소를 입력해주세요',
-                                        hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                                        hintStyle: AppTextStyles.inputHint,
                                         border: InputBorder.none,
                                         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                     ),
                                 ),
                             ),
-                        ),
-                        SizedBox(width: 12),
-                        Container(
-                            height: 56,
-                            width: 80,
-                            decoration: BoxDecoration(
-                                color: Color(0xFFF97316),
-                                borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ElevatedButton(
-                                onPressed: () => _handleAddressSearch(context, viewModel),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                    ),
+                            SizedBox(width: 12),
+                            Container(
+                                height: AppConstants.inputFieldHeight,
+                                width: 80,
+                                decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Text(
-                                    '검색',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
+                                child: ElevatedButton(
+                                    onPressed: () => _handleAddressSearch(context, viewModel),
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                        ),
+                                    ),
+                                    child: Text(
+                                        '검색',
+                                        style: AppTextStyles.customButton.copyWith(fontSize: 14),
                                     ),
                                 ),
                             ),
-                        ),
-                    ],
+                        ],
+                    ),
                 ),
             ],
         );
@@ -378,54 +440,62 @@ class _BusApplicationScreenContent extends StatelessWidget {
         return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Text(
-                    '희망 프로그램',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                    ),
+                Row(
+                    children: [
+                        Image.asset(
+                            'assets/images/label.png',
+                            width: 16,
+                            height: 16,
+                            fit: BoxFit.contain,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                            '희망 프로그램',
+                            style: AppTextStyles.inputLabel,
+                        ),
+                    ],
                 ),
                 SizedBox(height: 8),
-                Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFE5E7EB)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                            value: viewModel.selectedProgram,
-                            isExpanded: true,
-                            hint: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                    '프로그램을 선택해주세요',
-                                    style: TextStyle(
-                                        color: Color(0xFF9CA3AF),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.normal,
-                                    ),
-                                ),
+                Center(
+                    child: Container(
+                        width: AppConstants.inputFieldWidth,
+                        height: AppConstants.inputFieldHeight,
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: (viewModel.selectedProgram?.isNotEmpty ?? false)
+                                    ? AppColors.primaryLight 
+                                    : AppColors.grey300,
+                                width: 1.0,
                             ),
-                            items: viewModel.programs.map((program) => DropdownMenuItem(
-                                value: program,
-                                child: Padding(
+                        ),
+                        child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                                value: (viewModel.selectedProgram?.isEmpty ?? true) ? null : viewModel.selectedProgram,
+                                isExpanded: true,
+                                hint: Container(
                                     padding: EdgeInsets.symmetric(horizontal: 16),
                                     child: Text(
-                                        program,
-                                        style: TextStyle(
-                                            color: Color(0xFF374151),
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.normal,
-                                        ),
+                                        '프로그램을 선택해주세요',
+                                        style: AppTextStyles.inputHint,
                                     ),
                                 ),
-                            )).toList(),
-                            onChanged: (value) {
-                                viewModel.setSelectedProgram(value);
-                            },
+                                items: viewModel.programs.map((program) => DropdownMenuItem(
+                                    value: program,
+                                    child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8.0),
+                                        child: Text(
+                                            program,
+                                            style: AppTextStyles.inputText,
+                                        ),
+                                    ),
+                                )).toList(),
+                                onChanged: (value) {
+                                    viewModel.setSelectedProgram(value);
+                                    viewModel.notifyListeners();
+                                },
+                            ),
                         ),
                     ),
                 ),
@@ -437,32 +507,47 @@ class _BusApplicationScreenContent extends StatelessWidget {
         return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Text(
-                    '희망 도서',
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                    ),
+                Row(
+                    children: [
+                        Image.asset(
+                            'assets/images/label.png',
+                            width: 16,
+                            height: 16,
+                            fit: BoxFit.contain,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                            '희망 도서',
+                            style: AppTextStyles.inputLabel,
+                        ),
+                    ],
                 ),
                 SizedBox(height: 8),
-                Container(
-                    width: double.infinity,
-                    height: 56,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Color(0xFFE5E7EB)),
-                    ),
-                    child: TextFormField(
-                        controller: viewModel.desiredBookController,
-                        validator: viewModel.validateDesiredBook,
-                        maxLines: 1,
-                        decoration: InputDecoration(
-                            hintText: '읽고 싶은 도서를 입력해주세요',
-                            hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                Center(
+                    child: Container(
+                        width: AppConstants.inputFieldWidth,
+                        height: AppConstants.inputFieldHeight,
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: viewModel.desiredBookController.text.isNotEmpty 
+                                    ? AppColors.primaryLight 
+                                    : AppColors.grey300,
+                                width: 1.0,
+                            ),
+                        ),
+                        child: TextFormField(
+                            controller: viewModel.desiredBookController,
+                            validator: viewModel.validateDesiredBook,
+                            maxLines: 1,
+                            onChanged: (value) => viewModel.notifyListeners(),
+                            decoration: InputDecoration(
+                                hintText: '읽고 싶은 도서를 입력해주세요',
+                                hintStyle: AppTextStyles.inputHint,
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            ),
                         ),
                     ),
                 ),
@@ -471,28 +556,34 @@ class _BusApplicationScreenContent extends StatelessWidget {
     }
 
     Widget _buildApplicationButton(BuildContext context, BusApplicationViewModel viewModel) {
-        return Container(
-            width: double.infinity,
-            height: 56,
-            decoration: BoxDecoration(
-                color: Color(0xFFF97316), // 오렌지 500
-                borderRadius: BorderRadius.circular(12),
-            ),
-            child: ElevatedButton(
-                onPressed: viewModel.isLoading ? null : () => _handleApplication(context, viewModel),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                    ),
+        // 필수 필드만 확인 (희망 도서와 희망 프로그램 제외)
+        bool isAllFieldsFilled = viewModel.nameController.text.isNotEmpty &&
+                                viewModel.ageController.text.isNotEmpty &&
+                                viewModel.phoneNumberController.text.isNotEmpty &&
+                                viewModel.addressController.text.isNotEmpty;
+
+        return Center(
+            child: Container(
+                width: AppConstants.buttonWidth,
+                height: AppConstants.buttonHeight,
+                decoration: BoxDecoration(
+                    color: isAllFieldsFilled ? AppColors.primary : AppColors.primaryDisabled,
+                    borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                    viewModel.isLoading ? '신청 중...' : '버스 신청하기',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                child: ElevatedButton(
+                    onPressed: (viewModel.isLoading || !isAllFieldsFilled) ? null : () => _handleApplication(context, viewModel),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                        ),
+                    ),
+                    child: Text(
+                        viewModel.isLoading ? '신청 중...' : '버스 신청하기',
+                        style: AppTextStyles.customButton.copyWith(
+                            color: isAllFieldsFilled ? AppColors.grey50 : AppColors.grey50,
+                        ),
                     ),
                 ),
             ),

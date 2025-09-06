@@ -36,13 +36,35 @@ class AppConstants {
   static const double iconXL = 40.0;
   static const double iconXXL = 48.0;
 
-  // Button Heights (버튼 높이)
+  // Button Dimensions (버튼 크기)
+  static const double buttonWidth = 334.0;
+  static const double buttonHeight = 48.0;
   static const double buttonHeightS = 32.0;
   static const double buttonHeightM = 40.0;
   static const double buttonHeightL = 48.0;
   static const double buttonHeightXL = 56.0;
 
-  // Input Field Heights (입력 필드 높이)
+  // Input Field Dimensions (입력 필드 크기)
+  static const double inputFieldWidth = 334.0;
+  static const double inputFieldHeight = 44.0;
+  
+  // Modal Dimensions (모달 크기)
+  static const double modalWidth = 300.0;
+  static const double modalHeight = 320.0;
+  
+  // Modal Button Dimensions (모달 버튼 크기)
+  static const double modalButtonWidth = 268.0;
+  static const double modalButtonHeight = 48.0;
+  
+  // Search Screen Dimensions (검색 화면 크기)
+  static const double searchFieldWidth = 282.0;
+  static const double searchFieldHeight = 44.0;
+  static const double searchCardWidth = 334.0;
+  static const double searchCardHeight = 520.0; // 카드 높이를 늘려서 검색 필드와 붙게 함
+  
+  // Application Status Card Dimensions (신청 현황 카드 크기)
+  static const double applicationStatusCardWidth = 334.0;
+  static const double applicationStatusCardHeight = 404.0;
   static const double inputHeightS = 40.0;
   static const double inputHeightM = 48.0;
   static const double inputHeightL = 56.0;
