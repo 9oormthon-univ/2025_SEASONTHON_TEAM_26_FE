@@ -1,3 +1,4 @@
+// lib/screens/bus_status_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -10,7 +11,7 @@ import '../models/bus_status.dart';
 import '../services/bus_api.dart';
 import '../services/bus_api_mock.dart';
 
-// ✅ 통합 앱바 색/텍스트 스타일
+// 테마
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
@@ -23,11 +24,19 @@ class BusStatusScreen extends StatefulWidget {
 
 class _BusStatusScreenState extends State<BusStatusScreen> {
   final GlobalKey<KakaoMapViewState> _mapKey = GlobalKey<KakaoMapViewState>();
-  final DraggableScrollableController _sheetCtrl = DraggableScrollableController();
+  final DraggableScrollableController _sheetCtrl =
+      DraggableScrollableController();
 
-  // 시트 크기 한계값(DraggableScrollableSheet와 동일하게 유지)
+  // ✨ 검색영역/스택 측정을 위한 키
+  final GlobalKey _searchAreaKey = GlobalKey();
+  final GlobalKey _stackKey = GlobalKey();
+
+  // 시트 크기 한계값
   static const double _minSheet = 0.12;
-  static const double _maxSheet = 0.60;
+  static const double _fallbackMaxSheet = 0.86; // ✨ 측정 실패시 여유 있게(검색창 아래쯤)
+
+  // ✨ 동적으로 계산된 최대 높이(0~1). 최초엔 폴백으로 시작
+  double _dynamicMaxSheet = _fallbackMaxSheet;
 
   final BusApi _api = MockBusApi(); // TODO: 실제 API 구현체로 교체
 
@@ -41,9 +50,9 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
   Stop? _selectedStop;
 
   // 표시 상태
-  BusRunState? _busRunState;               // 버스 전체 상태
-  BusStatusAtStop? _statusAtSelectedStop;  // 특정 정류장에서의 상태
-  int? _busCurrentStopId;                  // 현재 버스가 있는 정류장
+  BusRunState? _busRunState; // 버스 전체 상태
+  BusStatusAtStop? _statusAtSelectedStop; // 특정 정류장에서의 상태
+  int? _busCurrentStopId; // 현재 버스가 있는 정류장
 
   // “검색 전” 기본 화면: 내 위치 근처 정류장 + 그 정류장을 지나는 버스들
   Stop? _nearestStop;
@@ -53,9 +62,10 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
 
   // 위치 스트림
   StreamSubscription<Position>? _posSub;
-  bool _nearestBusy = false; // 중복 호출 방지
-  int? _lastNearestStopId;   // 동일 정류장 중복 렌더 방지
-  DateTime _lastNearestAt = DateTime.fromMillisecondsSinceEpoch(0); // 스로틀용
+  bool _nearestBusy = false;
+  int? _lastNearestStopId;
+  DateTime _lastNearestAt =
+      DateTime.fromMillisecondsSinceEpoch(0); // 스로틀용
 
   bool get _autoNearestEnabled => _selectedBus == null;
 
@@ -63,7 +73,10 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
   void initState() {
     super.initState();
     _loadNearestStopAndBuses(); // 최초 1회
-    _startNearestWatcher();     // 이후 위치 변할 때마다 자동 갱신
+    _startNearestWatcher(); // 이후 위치 변할 때마다 자동 갱신
+
+    // ✨ 최초 프레임 이후 검색창/스택 치수로 maxSheet 재계산
+    WidgetsBinding.instance.addPostFrameCallback((_) => _recalcMaxSheet());
   }
 
   @override
@@ -73,27 +86,69 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     super.dispose();
   }
 
-  // ───────── 통합 앱바 ─────────
+  // ✨ 검색창 아래로만 올라가도록 maxChildSize 동적 계산
+  void _recalcMaxSheet() {
+    try {
+      final stackBox = _stackKey.currentContext?.findRenderObject() as RenderBox?;
+      final searchBox = _searchAreaKey.currentContext?.findRenderObject() as RenderBox?;
+
+      if (stackBox == null || searchBox == null) {
+        setState(() => _dynamicMaxSheet = _fallbackMaxSheet);
+        return;
+      }
+
+      final stackSize = stackBox.size; // Stack 전체 높이
+      final stackTopLeft = stackBox.localToGlobal(Offset.zero);
+
+      final searchTopLeft = searchBox.localToGlobal(Offset.zero);
+      final searchSize = searchBox.size;
+
+      // 검색영역의 하단 Y (Stack 기준)
+      final searchBottomY = (searchTopLeft.dy - stackTopLeft.dy) + searchSize.height;
+
+      // 시트의 상단 Y = stackHeight * (1 - size)
+      // 조건: stackHeight * (1 - size) >= searchBottomY + gap
+      const double gap = 8; // 검색창과 시트 사이 여유
+      final h = stackSize.height;
+      if (h <= 0) {
+        setState(() => _dynamicMaxSheet = _fallbackMaxSheet);
+        return;
+      }
+
+      final limitSize = 1 - (searchBottomY + gap) / h;
+
+      // 안전 범위로 클램프 (너무 작아지지 않게)
+      final computed = limitSize.clamp(0.55, 0.96);
+      if ((_dynamicMaxSheet - computed).abs() > 0.001) {
+        setState(() => _dynamicMaxSheet = computed.toDouble());
+      }
+    } catch (_) {
+      setState(() => _dynamicMaxSheet = _fallbackMaxSheet);
+    }
+  }
+
+  // ───────── 상단 통합 앱바 ─────────
   Widget _buildIntegratedAppBar(BuildContext context) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.appBarBackground, // Ivory-300 배경
+        color: AppColors.appBarBackground,
         border: Border(
           bottom: BorderSide(
-            color: AppColors.primaryDisabled, // Primary/Orange-200
+            color: AppColors.primaryDisabled,
             width: 1.0,
           ),
         ),
       ),
       child: Column(
         children: [
-          // Dream Drivers 로고
+          // 로고
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            padding:
+                const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
             child: Align(
-              alignment: Alignment.centerLeft, // 왼쪽 정렬
+              alignment: Alignment.centerLeft,
               child: Image.asset(
                 'assets/images/dreamdrivers_orange.png',
                 height: 40,
@@ -102,12 +157,12 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
             ),
           ),
 
-          // 네비게이션 탭
+          // 네비 탭
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: Row(
               children: [
-                // 버스 현황 탭 (현재 화면)
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
@@ -116,18 +171,19 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                     child: Container(
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.surface, // Neutral/Ivory-300
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.primary, width: 1),
+                        border: Border.all(
+                            color: AppColors.primary, width: 1),
                       ),
                       child: Center(
-                        child: Text('버스 현황', style: AppTextStyles.navigatorTabInactive),
+                        child: Text('버스 현황',
+                            style: AppTextStyles.navigatorTabInactive),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                // 버스 신청 탭
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
@@ -136,10 +192,12 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                     child: Container(
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.primary, // Primary/Orange-500
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Center(child: Text('버스 신청', style: AppTextStyles.navigatorTab)),
+                      child: Center(
+                          child: Text('버스 신청',
+                              style: AppTextStyles.navigatorTab)),
                     ),
                   ),
                 ),
@@ -150,14 +208,14 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       ),
     );
   }
-  // ─────────────────────────────
 
-  // ───────── 헤더 드래그 → 시트 높이 제어 로직 ─────────
+  // ───────── 헤더 드래그 → 시트 높이 제어 ─────────
   void _onHeaderDragUpdate(DragUpdateDetails d) {
     final screenH = MediaQuery.of(context).size.height;
     if (screenH <= 0) return;
     final dy = d.delta.dy; // 위로 드래그 시 음수
-    final next = (_sheetCtrl.size - dy / screenH).clamp(_minSheet, _maxSheet);
+    final next =
+        (_sheetCtrl.size - dy / screenH).clamp(_minSheet, _dynamicMaxSheet); // ✨ 동적 최대치 적용
     _sheetCtrl.jumpTo(next);
   }
 
@@ -167,7 +225,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     if (v.abs() > 600) {
       target = (v < 0) ? (_sheetCtrl.size + 0.18) : (_sheetCtrl.size - 0.18);
     }
-    target = target.clamp(_minSheet, _maxSheet);
+    target = target.clamp(_minSheet, _dynamicMaxSheet); // ✨ 동적 최대치 적용
     if ((target - _sheetCtrl.size).abs() > 0.02) {
       _sheetCtrl.animateTo(
         target,
@@ -176,26 +234,28 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       );
     }
   }
-  // ─────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final hasBus = _selectedBus != null;
-    final showingStopStatus = _selectedStop != null && _statusAtSelectedStop != null;
+    final showingStopStatus =
+        _selectedStop != null && _statusAtSelectedStop != null;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            _buildIntegratedAppBar(context), // 상단 고정
+            _buildIntegratedAppBar(context),
             Expanded(
               child: Stack(
+                key: _stackKey, // ✨ 측정용
                 children: [
                   // ① 지도
                   Positioned.fill(
                     child: KakaoMapView(
                       key: _mapKey,
                       onStopMarkerTap: (stop) async {
+                        // 버스 선택 중일 때만 하단바 전환
                         if (_selectedBus == null) return;
 
                         setState(() {
@@ -212,7 +272,8 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                         try {
                           await _sheetCtrl.animateTo(
                             0.32,
-                            duration: const Duration(milliseconds: 250),
+                            duration:
+                                const Duration(milliseconds: 250),
                             curve: Curves.easeOut,
                           );
                         } catch (_) {}
@@ -220,19 +281,29 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                     ),
                   ),
 
-                  // ② 상단: 지역 검색 + 결과 드롭다운 카드
+                  // ② 상단 검색 영역
                   Positioned(
-                    top: 12, left: 12, right: 12,
+                    top: 12,
+                    left: 12,
+                    right: 12,
                     child: Column(
+                      key: _searchAreaKey, // ✨ 측정용
                       children: [
                         _SearchBar(
                           controller: _searchCtl,
-                          onSubmitted: _onSearchRegion,
+                          onSubmitted: (kw) async {
+                            await _onSearchRegion(kw);
+                            // ✨ 검색결과가 접혔다/펼쳐졌다가 반영되도록 다음 프레임에 재계산
+                            WidgetsBinding.instance.addPostFrameCallback((_) => _recalcMaxSheet());
+                          },
                         ),
                         if (_searchResults.isNotEmpty)
                           _SearchResultCard(
                             buses: _searchResults,
-                            onSelectBus: _onSelectBusFromList,
+                            onSelectBus: (b) async {
+                              await _onSelectBusFromList(b);
+                              WidgetsBinding.instance.addPostFrameCallback((_) => _recalcMaxSheet());
+                            },
                           ),
                       ],
                     ),
@@ -243,9 +314,10 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                     controller: _sheetCtrl,
                     initialChildSize: 0.20,
                     minChildSize: _minSheet,
-                    maxChildSize: _maxSheet,
+                    maxChildSize: _dynamicMaxSheet, // ✨ 동적 최대치 반영
                     builder: (context, controller) {
                       if (!hasBus) {
+                        // (A) 검색 전: 가까운 정류장
                         return _NearestStopSheet(
                           controller: controller,
                           loading: _nearestLoading,
@@ -259,6 +331,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                       }
 
                       if (hasBus && !showingStopStatus) {
+                        // (B) 버스 개요(정류장 미선택)
                         return _BusOverviewSheet(
                           controller: controller,
                           selectedBus: _selectedBus!,
@@ -271,6 +344,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
                         );
                       }
 
+                      // (C) 정류장 선택 상태
                       return _BusAtStopSheet(
                         controller: controller,
                         selectedStop: _selectedStop!,
@@ -305,7 +379,8 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       return;
     }
 
@@ -313,7 +388,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     _posSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 25, // 25m 이상 이동 시 이벤트
+        distanceFilter: 25,
       ),
     ).listen((pos) async {
       if (!_autoNearestEnabled) return;
@@ -345,6 +420,8 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
             kmap.LatLng(latitude: pos.latitude, longitude: pos.longitude),
             moveCamera: false,
           );
+          // 근접 모드: 노선 점선은 숨김
+          await _mapKey.currentState?.clearRouteDots();
           return;
         }
 
@@ -363,6 +440,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
         );
 
         await _mapKey.currentState?.setStops([near]);
+        await _mapKey.currentState?.clearRouteDots();
 
         final buses = await _api.fetchBusesByStop(near.stopId);
 
@@ -388,6 +466,9 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     if (keyword.trim().isEmpty) return;
     final results = await _api.searchBusesByRegion(keyword);
     setState(() => _searchResults = results);
+
+    // ✨ 검색 결과 변화 후 max 재계산
+    WidgetsBinding.instance.addPostFrameCallback((_) => _recalcMaxSheet());
   }
 
   Future<void> _onSelectBusFromList(Bus bus) async {
@@ -402,12 +483,19 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       _searchResults = [];
     });
 
+    // ✨ 검색카드가 사라졌으니 최대치 다시 계산
+    WidgetsBinding.instance.addPostFrameCallback((_) => _recalcMaxSheet());
+
     await _mapKey.currentState?.moveCameraTo(
       kmap.LatLng(latitude: bus.centerLat, longitude: bus.centerLng),
     );
 
     final stops = await _api.fetchRouteStops(bus.courseId);
     await _mapKey.currentState?.setStops(stops);
+
+    // 🔶 노선 점선 그리기
+    await _mapKey.currentState?.drawRouteDots(stops);
+
     final runState = await _api.fetchBusRunState(bus.busId);
     final curStopId = await _api.fetchBusCurrentStopId(bus.busId);
 
@@ -426,7 +514,8 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     } catch (_) {}
   }
 
-  Future<void> _onSelectBusFromNearest(Bus bus) => _onSelectBusFromList(bus);
+  Future<void> _onSelectBusFromNearest(Bus bus) =>
+      _onSelectBusFromList(bus);
 
   Future<void> _onTapStopFromList(Stop s) async {
     if (_selectedBus == null) return;
@@ -444,7 +533,8 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       busId: _selectedBus!.busId,
       stopId: s.stopId,
     );
-    final curId = await _api.fetchBusCurrentStopId(_selectedBus!.busId);
+    final curId =
+        await _api.fetchBusCurrentStopId(_selectedBus!.busId);
 
     setState(() {
       _statusAtSelectedStop = st;
@@ -470,7 +560,8 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     });
 
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled =
+          await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() {
           _nearestLoading = false;
@@ -482,14 +573,16 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         setState(() {
           _nearestLoading = false;
           _nearestError = '위치 권한이 필요해요.';
         });
         return;
       }
-      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
+      final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.best);
 
       final near = await _api.fetchNearestStop(
         lat: pos.latitude,
@@ -509,10 +602,12 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
           _nearestStop = null;
           _busesAtNearestStop = [];
         });
+        await _mapKey.currentState?.clearRouteDots();
         return;
       }
 
       await _mapKey.currentState?.setStops([near]);
+      await _mapKey.currentState?.clearRouteDots();
 
       final buses = await _api.fetchBusesByStop(near.stopId);
 
@@ -533,7 +628,8 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
 
   // ───────── “내 위치로 이동” FAB ─────────
   Future<void> _goToMyLocation() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    final serviceEnabled =
+        await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       await Geolocator.openLocationSettings();
       return;
@@ -542,10 +638,12 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       return;
     }
-    final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
+    final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
     await _mapKey.currentState?.setMyLocation(
       kmap.LatLng(latitude: pos.latitude, longitude: pos.longitude),
       moveCamera: true,
@@ -568,7 +666,6 @@ class _SearchBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // 검색 입력 필드
         Expanded(
           child: Material(
             elevation: 4,
@@ -578,36 +675,28 @@ class _SearchBar extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: '지역을 검색하세요',
                 hintStyle: TextStyle(color: Colors.grey[500]),
-                prefixIcon: const Icon(Icons.search, color: AppColors.primaryLight),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                prefixIcon: const Icon(Icons.search,
+                    color: AppColors.primaryLight),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 12),
                 filled: true,
                 fillColor: Colors.white,
-                // 모든 상태 동일한 테두리
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
-                  borderSide: const BorderSide(color: AppColors.primaryDisabled, width: 1.5),
+                  borderSide: const BorderSide(
+                      color: AppColors.primaryDisabled, width: 1.5),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
-                  borderSide: const BorderSide(color: AppColors.primaryDisabled, width: 1.5),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: const BorderSide(color: AppColors.primaryDisabled, width: 1.5),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: const BorderSide(color: AppColors.primaryDisabled, width: 1.5),
+                  borderSide: const BorderSide(
+                      color: AppColors.primaryDisabled, width: 1.5),
                 ),
               ),
               onSubmitted: onSubmitted,
             ),
           ),
         ),
-
         const SizedBox(width: 8),
-
-        // 요일 선택 버튼 (UI만)
         Container(
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -620,7 +709,9 @@ class _SearchBar extends StatelessWidget {
             children: [
               Icon(Icons.arrow_drop_down, color: Colors.white),
               SizedBox(width: 4),
-              Text('요일', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              Text('요일',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -630,7 +721,8 @@ class _SearchBar extends StatelessWidget {
 }
 
 class _SearchResultCard extends StatelessWidget {
-  const _SearchResultCard({required this.buses, required this.onSelectBus});
+  const _SearchResultCard(
+      {required this.buses, required this.onSelectBus});
   final List<Bus> buses;
   final ValueChanged<Bus> onSelectBus;
 
@@ -638,7 +730,8 @@ class _SearchResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(top: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12)),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -648,7 +741,8 @@ class _SearchResultCard extends StatelessWidget {
         itemBuilder: (context, i) {
           final b = buses[i];
           return ListTile(
-            leading: const Icon(Icons.directions_bus_filled, color: AppColors.primary),
+            leading: const Icon(Icons.directions_bus_filled,
+                color: AppColors.primary),
             title: Text(b.name),
             subtitle: Text('courseId: ${b.courseId}'),
             onTap: () => onSelectBus(b),
@@ -659,7 +753,7 @@ class _SearchResultCard extends StatelessWidget {
   }
 }
 
-// 공통: 헤더 드래그 영역 Wrapper
+// 공통 헤더 드래그 래퍼
 class _HeaderDraggable extends StatelessWidget {
   const _HeaderDraggable({
     required this.child,
@@ -682,7 +776,7 @@ class _HeaderDraggable extends StatelessWidget {
   }
 }
 
-// 공통: 시트 상단 헤더(그립+데코+타이틀+구분선)
+// 공통 헤더
 class _SheetHeader extends StatelessWidget {
   const _SheetHeader({required this.title});
   final String title;
@@ -693,22 +787,32 @@ class _SheetHeader extends StatelessWidget {
       children: [
         const SizedBox(height: 12),
         Container(
-          width: 44, height: 5,
-          decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(3)),
+          width: 44,
+          height: 5,
+          decoration: BoxDecoration(
+              color: Colors.black26,
+              borderRadius: BorderRadius.circular(3)),
         ),
         const SizedBox(height: 22),
-        Image.asset('assets/images/groom.png', height: 16, fit: BoxFit.contain),
+        Image.asset('assets/images/groom.png',
+            height: 16, fit: BoxFit.contain),
         const SizedBox(height: 35),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary),
           ),
         ),
         const SizedBox(height: 18),
-        Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 16), color: AppColors.primaryDisabled),
+        Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            color: AppColors.primaryDisabled),
         const SizedBox(height: 12),
       ],
     );
@@ -760,28 +864,35 @@ class _NearestStopSheet extends StatelessWidget {
                   ),
                 if (error != null) const SizedBox(height: 8),
                 if (error != null)
-                  Text(error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+                  Text(error!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center),
                 if (!loading && error == null && stop != null) ...[
                   ListTile(
-                    leading: const Icon(Icons.place, color: AppColors.primary),
-                    title: Text(stop!.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text('(${stop!.lat.toStringAsFixed(5)}, ${stop!.lng.toStringAsFixed(5)})'),
+                    leading: const Icon(Icons.place,
+                        color: AppColors.primary),
+                    title: Text(stop!.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                        '(${stop!.lat.toStringAsFixed(5)}, ${stop!.lng.toStringAsFixed(5)})'),
                     contentPadding: EdgeInsets.zero,
                   ),
                   const SizedBox(height: 8),
                   const Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('이 정류장을 지나는 버스', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: Text('이 정류장을 지나는 버스',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
                   const SizedBox(height: 8),
                 ],
               ],
             ),
           ),
-
           if (!loading && error == null && stop != null) ...[
             if (buses.isEmpty)
-              const Text('해당 정류장을 운행하는 버스가 없습니다.', style: TextStyle(color: Colors.black54)),
+              const Text('해당 정류장을 운행하는 버스가 없습니다.',
+                  style: TextStyle(color: Colors.black54)),
             ...buses.map(
               (b) => Card(
                 color: Colors.white,
@@ -791,10 +902,12 @@ class _NearestStopSheet extends StatelessWidget {
                   side: const BorderSide(color: AppColors.primaryDisabled),
                 ),
                 child: ListTile(
-                  leading: const Icon(Icons.directions_bus_filled, color: AppColors.primary),
+                  leading: const Icon(Icons.directions_bus_filled,
+                      color: AppColors.primary),
                   title: Text(b.name),
                   subtitle: Text('courseId: ${b.courseId}'),
-                  trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
+                  trailing: const Icon(Icons.chevron_right,
+                      color: AppColors.primary),
                   onTap: () => onTapBus(b),
                 ),
               ),
@@ -830,25 +943,31 @@ class _BusOverviewSheet extends StatelessWidget {
 
   String _stateToKo(BusRunState s) {
     switch (s) {
-      case BusRunState.inService: return '이동중';
-      case BusRunState.dwell:     return '정차중';
-      case BusRunState.before:    return '운행 전';
-      case BusRunState.finished:  return '운행 종료';
+      case BusRunState.inService:
+        return '이동중';
+      case BusRunState.dwell:
+        return '정차중';
+      case BusRunState.before:
+        return '운행 전';
+      case BusRunState.finished:
+        return '운행 종료';
     }
   }
 
-  // 정류장별 시간 범위(데이터 없으면 플레이스홀더)
   String _timeRangeOrDash(Stop s) {
     try {
       final dyn = s as dynamic;
       final start = dyn.startTime as String?;
       final end = dyn.endTime as String?;
-      if (start != null && end != null && start.isNotEmpty && end.isNotEmpty) {
+      if (start != null &&
+          end != null &&
+          start.isNotEmpty &&
+          end.isNotEmpty) {
         return '$start ~ $end';
       }
     } catch (_) {}
     return '— — : — —  ~  — — : — —';
-  }
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -865,85 +984,73 @@ class _BusOverviewSheet extends StatelessWidget {
               children: [
                 _SheetHeader(title: selectedBus.name),
                 const SizedBox(height: 12),
-                //칩 라벨
                 const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 40),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Pill('상태'),
-                        Pill('현재 위치'),
-                        Pill('도착 시간'),
-                        Pill('잔여 시간'),
-                      ],
-                    ),
-                  ),
-
-                const SizedBox(height: 8),
-
-                // 칩 값(모델에 값 없으면 “–” 처리)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 40),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(child: CellText('—')),
-                      Expanded(child: CellText('—')),
-                      Expanded(child: CellText('— — : — —')),
-                      Expanded(child: CellText('—')),
+                      Pill('상태'),
+                      Pill('현재 위치'),
+                      Pill('도착 시간'),
+                      Pill('잔여 시간'),
                     ],
                   ),
                 ),
                 const SizedBox(height: 8),
-
-                // 구분선
-                Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 16), color: AppColors.primaryDisabled),
-
-                // // 상태 칩(우측)
-                // Padding(
-                //   padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-                //   child: Row(
-                //     children: [
-                //       const Spacer(),
-                //       if (runState != null)
-                //         Chip(
-                //           label: Text(_stateToKo(runState!)),
-                //           backgroundColor: AppColors.primary.withOpacity(0.1),
-                //           labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-                //           visualDensity: VisualDensity.compact,
-                //         ),
-                //     ],
-                //   ),
-                // ),
-
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(child: _CellText('—')),
+                      Expanded(child: _CellText('—')),
+                      Expanded(child: _CellText('— — : — —')),
+                      Expanded(child: _CellText('—')),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                    height: 1,
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    color: AppColors.primaryDisabled),
+                const Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('노선 정류장', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: Text('노선 정류장',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
             ),
           ),
 
-          // 리스트 (배경에 녹이고 구분선으로만 나눔)
+          // 정류장 리스트
           Expanded(
             child: ListView.separated(
               controller: controller,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               itemCount: routeStops.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.primaryDisabled),
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 1, color: AppColors.primaryDisabled),
               itemBuilder: (context, i) {
                 final s = routeStops[i];
                 final isCurrent = currentStopId == s.stopId;
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(
-                    isCurrent ? Icons.directions_bus : Icons.radio_button_unchecked,
-                    color: isCurrent ? AppColors.primary : Colors.black54,
+                    isCurrent
+                        ? Icons.directions_bus
+                        : Icons.radio_button_unchecked,
+                    color:
+                        isCurrent ? AppColors.primary : Colors.black54,
                   ),
-                  title: Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(_timeRangeOrDash(s), style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                  title: Text(s.name,
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(_timeRangeOrDash(s),
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.black54)),
                   onTap: () => onTapStop(s),
                 );
               },
@@ -979,14 +1086,17 @@ class _BusAtStopSheet extends StatelessWidget {
 
   String _stateToKo(BusRunState s) {
     switch (s) {
-      case BusRunState.inService: return '이동중';
-      case BusRunState.dwell:     return '정차중';
-      case BusRunState.before:    return '운행 전';
-      case BusRunState.finished:  return '운행 종료';
+      case BusRunState.inService:
+        return '이동중';
+      case BusRunState.dwell:
+        return '정차중';
+      case BusRunState.before:
+        return '운행 전';
+      case BusRunState.finished:
+        return '운행 종료';
     }
   }
 
-  // 남은 시간 mm표현 (예: 1시간 30분)
   String _fmtDuration(Duration? d) {
     if (d == null) return '–';
     final h = d.inHours;
@@ -996,7 +1106,6 @@ class _BusAtStopSheet extends StatelessWidget {
     return '${h}시간 ${m}분';
   }
 
-  // “13분 후” 같은 표기
   String _fmtEta(Duration? d) {
     if (d == null) return '–';
     final m = d.inMinutes;
@@ -1006,14 +1115,6 @@ class _BusAtStopSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final regionText = (() {
-      try {
-        final v = (selectedStop as dynamic).region ?? (selectedStop as dynamic).regionName;
-        if (v is String && v.isNotEmpty) return v;
-      } catch (_) {}
-      return '–';
-    })();
-
     return Material(
       elevation: 12,
       color: AppColors.surface,
@@ -1023,43 +1124,38 @@ class _BusAtStopSheet extends StatelessWidget {
           _HeaderDraggable(
             onUpdate: onHeaderDragUpdate,
             onEnd: onHeaderDragEnd,
-            child: Center(
-              child: Column(
-                children: [
-                  _SheetHeader(title: selectedStop.name), // 정류장명
-                  const SizedBox(height: 12),
-
-                  // 칩 라벨 4개 (지역/운행 요일/도착 시간/정차 시간)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 40),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Pill('지역'),
-                        Pill('운행 요일'),
-                        Pill('도착 시간'),
-                        Pill('정차 시간'),
-                      ],
-                    ),
+            child: Column(
+              children: [
+                _SheetHeader(title: selectedStop.name),
+                const SizedBox(height: 12),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 40),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Pill('지역'),
+                      Pill('운행 요일'),
+                      Pill('도착 시간'),
+                      Pill('정차 시간'),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-
-                  // 값 4개
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Row(
-                      children: [
-                        const CellText('–')..toString(), // 지역명은 아래로 교체
-                        // ↑ Analyzer 경고 회피용. 하지만 바로 아래서 교체한다.
-                      ],
-                    ),
+                ),
+                const SizedBox(height: 12),
+                // 값은 실제 API 연결시 채우면 됨
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(child: _CellText('–')),
+                      Expanded(child: _CellText('–')),
+                      Expanded(child: _CellText('— — : — —')),
+                      Expanded(child: _CellText('–')),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-
-          // 리스트 (아래 영역만 스크롤)
           Expanded(
             child: Container(
               color: AppColors.appBarBackground,
@@ -1067,15 +1163,19 @@ class _BusAtStopSheet extends StatelessWidget {
                 controller: controller,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                 itemCount: routeStops.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.primaryDisabled),
+                separatorBuilder: (_, __) => const Divider(
+                    height: 1, color: AppColors.primaryDisabled),
                 itemBuilder: (context, i) {
                   final s = routeStops[i];
                   final isCurrent = currentStopId == s.stopId;
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(
-                      isCurrent ? Icons.directions_bus : Icons.radio_button_unchecked,
-                      color: isCurrent ? AppColors.primary : Colors.black54,
+                      isCurrent
+                          ? Icons.directions_bus
+                          : Icons.radio_button_unchecked,
+                      color:
+                          isCurrent ? AppColors.primary : Colors.black54,
                     ),
                     title: Text(s.name),
                     onTap: () => onTapStop(s),
@@ -1107,27 +1207,26 @@ class Pill extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
-        style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+        style: const TextStyle(
+            fontWeight: FontWeight.w700, color: Colors.white),
       ),
     );
   }
 }
 
-// 값 셀(Expanded 균등분배)
-class CellText extends StatelessWidget {
-  const CellText(this.text);
+// 값 셀
+class _CellText extends StatelessWidget {
+  const _CellText(this.text);
   final String text;
 
   @override
   Widget build(BuildContext context) {
-    return const Expanded(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 6),
-        child: Text(
-          '', // 사용 시 텍스트 주입 필요
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
     );
   }
