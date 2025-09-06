@@ -42,7 +42,7 @@ class LoginViewModel extends BaseViewModel {
       
       // API 호출
       final result = await ApiService.login(
-        userId: idController.text.trim(),
+        loginId: idController.text.trim(),
         password: pwController.text.trim(),
       );
       

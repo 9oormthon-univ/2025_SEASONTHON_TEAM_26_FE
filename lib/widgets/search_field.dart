@@ -9,6 +9,8 @@ class SearchField extends StatefulWidget {
     final VoidCallback? onSearchPressed;
     final List<String> suggestions;
     final Function(String)? onSuggestionSelected;
+    final Function(String)? onChanged;
+    final bool showSuggestionsBelow;
 
     const SearchField({
         super.key,
@@ -17,6 +19,8 @@ class SearchField extends StatefulWidget {
         this.onSearchPressed,
         this.suggestions = const [],
         this.onSuggestionSelected,
+        this.onChanged,
+        this.showSuggestionsBelow = false,
     });
 
     @override
@@ -29,7 +33,11 @@ class _SearchFieldState extends State<SearchField> {
 
     @override
     Widget build(BuildContext context) {
-        return Autocomplete<String>(
+        return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, // 필요한 만큼만 공간 사용
+            children: [
+                Autocomplete<String>(
             optionsBuilder: (TextEditingValue textEditingValue) {
                 // textEditingValue의 텍스트 사용 (실시간 업데이트)
                 final text = textEditingValue.text;
@@ -117,6 +125,7 @@ class _SearchFieldState extends State<SearchField> {
                         onChanged: (value) {
                             // 외부 controller도 동기화
                             widget.controller.text = value;
+                            widget.onChanged?.call(controller.text);
                         },
                         style: AppTextStyles.inputText, // 입력 텍스트 스타일
                         decoration: InputDecoration(
@@ -136,6 +145,63 @@ class _SearchFieldState extends State<SearchField> {
                     ),
                 );
             },
+                ),
+                
+                // 검색 필드 아래 suggestions 목록
+                if (widget.showSuggestionsBelow && widget.suggestions.isNotEmpty)
+                    Container(
+                        margin: EdgeInsets.only(top: 8),
+                        constraints: BoxConstraints(
+                            maxHeight: 150, // 최대 높이 제한을 더 작게
+                        ),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Color(0xFFE5E7EB)),
+                            boxShadow: [
+                                BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 4),
+                                ),
+                            ],
+                        ),
+                        child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: widget.suggestions.take(5).length,
+                            itemBuilder: (context, index) {
+                                final suggestion = widget.suggestions[index];
+                                return InkWell(
+                                    onTap: () {
+                                        widget.controller.text = suggestion;
+                                        widget.onSuggestionSelected?.call(suggestion);
+                                    },
+                                    child: Container(
+                                        width: double.infinity,
+                                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        decoration: BoxDecoration(
+                                            border: index < widget.suggestions.take(5).length - 1
+                                                ? Border(
+                                                    bottom: BorderSide(
+                                                        color: Color(0xFFF3F4F6),
+                                                        width: 1,
+                                                    ),
+                                                )
+                                                : null,
+                                        ),
+                                        child: Text(
+                                            suggestion,
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Color(0xFF374151),
+                                            ),
+                                        ),
+                                    ),
+                                );
+                            },
+                        ),
+                    ),
+            ],
         );
     }
 }

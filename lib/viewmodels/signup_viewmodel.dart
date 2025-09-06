@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import '../services/api_service.dart';
+import '../utils/token_manager.dart';
 import 'base_viewmodel.dart';
 
 class SignupViewModel extends BaseViewModel {
@@ -139,31 +140,23 @@ class SignupViewModel extends BaseViewModel {
       // API 호출
       final result = await ApiService.signup(
         name: nameController.text.trim(),
-        userId: idController.text.trim(),
+        loginId: idController.text.trim(),
         password: pwController.text.trim(),
         email: email,
       );
 
-      // 응답 처리
-      if (result.containsKey('message') && !result.containsKey('code')) {
-        // 200 OK - 회원가입 성공
-        showSuccessDialog(context, result['message'], () {
+      // 응답 처리 - Dio에서 이미 에러 처리를 했으므로 단순화
+      if (result.containsKey('code')) {
+        // 에러 응답
+        setError(result['message'] ?? '회원가입에 실패했습니다.');
+        return false;
+      } else {
+        // 성공 응답
+        showSuccessDialog(context, result['message'] ?? '회원가입이 완료되었습니다.', () {
           // 성공 다이얼로그 확인 후 로그인 화면으로 이동
           Navigator.pushReplacementNamed(context, '/login');
         });
         return true;
-      } else if (result['code'] == 'CONFLICT') {
-        // 409 Conflict - 중복된 아이디
-        setError(result['message']);
-        return false;
-      } else if (result['code'] == 'BAD_REQUEST') {
-        // 400 Bad Request - 필수 필드 누락
-        setError(result['message']);
-        return false;
-      } else {
-        // 기타 오류
-        setError(result['message'] ?? '회원가입에 실패했습니다.');
-        return false;
       }
     } catch (e) {
       setError('회원가입 중 오류가 발생했습니다: ${e.toString()}');
@@ -290,8 +283,13 @@ class SignupViewModel extends BaseViewModel {
       // 서버에 카카오 로그인 요청
       final result = await ApiService.kakaoLogin(code: token.accessToken);
 
-      if (result.containsKey('accessToken')) {
-        // 성공 - 토큰 저장
+      // 응답 처리 - Dio에서 이미 에러 처리를 했으므로 단순화
+      if (result.containsKey('code')) {
+        // 에러 응답
+        setError(result['message'] ?? '카카오 로그인에 실패했습니다.');
+        return false;
+      } else {
+        // 성공 응답 - 토큰 저장
         final accessToken = result['accessToken'];
         final refreshToken = result['refreshToken'];
         final tokenType = result['tokenType'];
@@ -299,8 +297,14 @@ class SignupViewModel extends BaseViewModel {
         final userId = result['userId'];
         final name = result['name'];
 
-        // 토큰 저장 (실제로는 SecureStorage 사용)
-        // await SecureStorage.storeTokens(accessToken, refreshToken, tokenType, expiresIn);
+        // 토큰 저장
+        await AppTokenManager.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          expiresIn: expiresIn,
+          userId: userId,
+          userName: name,
+        );
         
         showSuccessDialog(
           context,
@@ -311,13 +315,6 @@ class SignupViewModel extends BaseViewModel {
         );
         
         return true;
-      } else {
-        // 실패
-        final errorCode = result['code'] ?? 'UNKNOWN_ERROR';
-        final errorMessage = result['message'] ?? '카카오 로그인에 실패했습니다.';
-        
-        setError(errorMessage);
-        return false;
       }
     } catch (e) {
       setError('카카오 로그인 처리 중 오류가 발생했습니다: ${e.toString()}');

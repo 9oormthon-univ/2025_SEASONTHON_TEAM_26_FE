@@ -38,6 +38,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        
+        <!-- Kakao Map API Key -->
+        <meta-data
+            android:name="com.kakao.sdk.AppKey"
+            android:value="7388c32d83d1c4266b0af485cefbacca" />
         <activity android:name="com.kakao.sdk.flutter.AuthCodeCustomTabsActivity">
 	        <intent-filter android:label="flutter_web_auth">
 		        <action android:name="android.intent.action.VIEW" />

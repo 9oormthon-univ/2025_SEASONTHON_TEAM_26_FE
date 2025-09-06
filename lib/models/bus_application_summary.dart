@@ -1,7 +1,6 @@
 class BusApplicationSummary {
   final String regionId;
   final String regionName;
-  final String date;
   final int capacity;
   final int appliedCount;
   final int remaining;
@@ -10,7 +9,6 @@ class BusApplicationSummary {
   BusApplicationSummary({
     required this.regionId,
     required this.regionName,
-    required this.date,
     required this.capacity,
     required this.appliedCount,
     required this.remaining,
@@ -33,7 +31,6 @@ class BusApplicationSummary {
     return BusApplicationSummary(
       regionId: json['regionId'],
       regionName: json['region_name'],
-      date: json['date'],
       capacity: json['capacity'],
       appliedCount: json['appliedCount'],
       remaining: json['remaining'],
@@ -45,7 +42,6 @@ class BusApplicationSummary {
     return {
       'regionId': regionId,
       'region_name': regionName,
-      'date': date,
       'capacity': capacity,
       'appliedCount': appliedCount,
       'remaining': remaining,

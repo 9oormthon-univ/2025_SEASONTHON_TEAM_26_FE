@@ -1,19 +1,23 @@
 class Region {
   final String regionId;
   final String name;
-  final RegionCenter center;
+  final List<Region>? children;
 
   Region({
     required this.regionId,
     required this.name,
-    required this.center,
+    this.children,
   });
 
   factory Region.fromJson(Map<String, dynamic> json) {
     return Region(
       regionId: json['regionId'],
       name: json['name'],
-      center: RegionCenter.fromJson(json['center']),
+      children: json['children'] != null
+          ? (json['children'] as List)
+              .map((child) => Region.fromJson(child))
+              .toList()
+          : null,
     );
   }
 
@@ -21,7 +25,8 @@ class Region {
     return {
       'regionId': regionId,
       'name': name,
-      'center': center.toJson(),
+      if (children != null)
+        'children': children!.map((child) => child.toJson()).toList(),
     };
   }
 }
@@ -57,17 +62,17 @@ class RegionCenter {
 }
 
 class RegionSearchResponse {
-  final List<Region> items;
+  final List<Region> regions;
+  final List<Region> items; // 호환성을 위한 getter
 
   RegionSearchResponse({
-    required this.items,
-  });
+    required this.regions,
+  }) : items = regions;
 
   factory RegionSearchResponse.fromJson(Map<String, dynamic> json) {
-    return RegionSearchResponse(
-      items: (json['items'] as List)
-          .map((item) => Region.fromJson(item))
-          .toList(),
-    );
+    final regionsList = (json['regions'] as List)
+        .map((item) => Region.fromJson(item))
+        .toList();
+    return RegionSearchResponse(regions: regionsList);
   }
 }

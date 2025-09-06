@@ -13,12 +13,10 @@ import '../../theme/app_constants.dart';
 class BusApplicationStatusScreen extends StatelessWidget {
     final String? regionId;
     final String? regionName;
-    final RegionCenter? center;
 
     const BusApplicationStatusScreen({
         this.regionId,
         this.regionName,
-        this.center,
         super.key,
     });
 
@@ -27,13 +25,11 @@ class BusApplicationStatusScreen extends StatelessWidget {
         return ChangeNotifierProvider(
             create: (context) => BusApplicationStatusViewModel()..initialize(
                 regionName, 
-                regionId: regionId, 
-                center: center != null ? {'latitude': center!.latitude, 'longitude': center!.longitude} : null
+                regionId: regionId
             ),
             child: _BusApplicationStatusScreenContent(
                 regionId: regionId,
                 regionName: regionName,
-                center: center,
             ),
         );
     }
@@ -42,12 +38,10 @@ class BusApplicationStatusScreen extends StatelessWidget {
 class _BusApplicationStatusScreenContent extends StatelessWidget {
     final String? regionId;
     final String? regionName;
-    final RegionCenter? center;
 
     const _BusApplicationStatusScreenContent({
         this.regionId,
         this.regionName,
-        this.center,
     });
 
     @override
@@ -93,7 +87,6 @@ class _BusApplicationStatusScreenContent extends StatelessWidget {
             arguments: {
                 'regionId': viewModel.regionId,
                 'regionName': viewModel.regionName,
-                'center': viewModel.center,
             },
         ).then((_) {
             // 신청 완료 후 돌아왔을 때 데이터 새로고침

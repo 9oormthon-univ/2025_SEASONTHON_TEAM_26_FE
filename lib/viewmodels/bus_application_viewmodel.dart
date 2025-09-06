@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'bus_application_status_viewmodel.dart';
 import 'base_viewmodel.dart';
 
 class BusApplicationViewModel extends BaseViewModel {
@@ -42,10 +43,10 @@ class BusApplicationViewModel extends BaseViewModel {
   }
 
   // 버스 신청 처리
-  Future<bool> handleBusApplication(BuildContext context, {
+  Future<bool> handleBusApplication(
+    BuildContext context, {
     required String regionId,
     required String regionName,
-    required Map<String, double> center,
   }) async {
     setLoading(true);
     clearError();
@@ -56,38 +57,19 @@ class BusApplicationViewModel extends BaseViewModel {
         return false;
       }
 
-      // API 호출
-      final result = await ApiService.createBusApplication(
-        regionId: regionId,
-        name: nameController.text.trim(),
-        age: int.parse(ageController.text.trim()),
-        phoneNumber: phoneNumberController.text.trim(),
-        address: addressController.text.trim(),
-        selectedProgram: _selectedProgram ?? '', // 선택사항
-        desiredBook: desiredBookController.text.trim(),
-      );
-
-      // 응답 처리
-      if (result.containsKey('message') && !result.containsKey('code')) {
-        // 200 OK - 신청 성공
-        showSuccessDialog(context, '버스 신청이 완료되었습니다!', () {
-          // 성공 다이얼로그 확인 후 신청 화면만 닫기 (BusApplicationStatusScreen의 .then() 콜백이 실행되도록)
-          Navigator.pop(context); // 신청 화면 닫기
-        });
-        return true;
-      } else if (result['code'] == 'BAD_REQUEST') {
-        // 400 Bad Request - 필수 필드 누락
-        setError(result['message']);
-        return false;
-      } else if (result['code'] == 'CONFLICT') {
-        // 409 Conflict - 이미 신청한 사용자
-        setError(result['message']);
-        return false;
-      } else {
-        // 기타 오류
-        setError(result['message'] ?? '버스 신청에 실패했습니다.');
-        return false;
-      }
+      // 목업 신청 처리
+      await Future.delayed(Duration(milliseconds: 500)); // 로딩 시뮬레이션
+      
+      // 신청 성공 시뮬레이션
+      print('🎉 버스 신청 성공: $regionName, 신청자: ${nameController.text.trim()}');
+      
+      // 신청 현황 데이터 업데이트
+      BusApplicationStatusViewModel.updateApplicationCount(regionId);
+      
+      showSuccessDialog(context, '버스 신청이 완료되었습니다!', () {
+        Navigator.pop(context); // 신청 화면 닫기
+      });
+      return true;
     } catch (e) {
       setError('버스 신청 중 오류가 발생했습니다: ${e.toString()}');
       return false;

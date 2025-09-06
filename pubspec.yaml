@@ -26,6 +26,7 @@ dependencies:
 
   # API 통신 (상위 버전 선택)
   http: ^1.2.2
+  dio: ^5.4.0
 
   # 로컬 저장소
   shared_preferences: ^2.2.2

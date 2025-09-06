@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'package:kakao_maps_flutter/kakao_maps_flutter.dart'; // Kakao Map SDK - 에뮬레이터 호환성 문제로 주석 처리
+import 'package:kakao_maps_flutter/kakao_maps_flutter.dart'; // Kakao Map SDK - 에뮬레이터 호환성 문제로 주석 처리
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart';  // Kakao Login etc.
 
 import 'screens/login_screen.dart';
@@ -20,7 +20,7 @@ Future<void> main() async {
   );
 
   // Kakao Map SDK 초기화 (네이티브 앱 키) - 에뮬레이터 호환성 문제로 주석 처리
-  // await KakaoMapsFlutter.init('7388c32d83d1c4266b0af485cefbacca');
+  await KakaoMapsFlutter.init('028c043da80499d5f5a4091190738ab0');
 
   runApp(const MyApp());
 }
@@ -44,7 +44,6 @@ class MyApp extends StatelessWidget {
           return BusApplicationStatusScreen(
             regionId: args?['regionId'],
             regionName: args?['regionName'],
-            center: args?['center'],
           );
         },
         '/bus-application': (context) {
@@ -52,7 +51,6 @@ class MyApp extends StatelessWidget {
           return BusApplicationScreen(
             regionId: args?['regionId'] ?? '',
             regionName: args?['regionName'] ?? '',
-            center: args?['center'] ?? {'latitude': 0.0, 'longitude': 0.0},
           );
         },
 
