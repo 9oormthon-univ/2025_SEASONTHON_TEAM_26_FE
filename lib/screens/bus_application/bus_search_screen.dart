@@ -91,7 +91,7 @@ class _BusSearchScreenContent extends StatelessWidget {
                 child: Column(
                     children: [
                         // 통합된 앱바 (로고 + 네비게이션 탭)
-                        _buildIntegratedAppBar(),
+                        _buildIntegratedAppBar(context),
                         
                         // 메인 콘텐츠 영역
                         Expanded(
@@ -118,91 +118,95 @@ class _BusSearchScreenContent extends StatelessWidget {
         );
     }
 
-    Widget _buildIntegratedAppBar() {
-        return Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-                color: AppColors.appBarBackground, // 더 선명한 아이보리 배경
-                border: Border(
-                    bottom: BorderSide(
-                        color: AppColors.primaryDisabled, // Primary/Orange-200
-                        width: 1.0,
+    Widget _buildIntegratedAppBar(BuildContext context) {
+  return Container(
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: AppColors.appBarBackground,
+      border: Border(
+        bottom: BorderSide(
+          color: AppColors.primaryDisabled,
+          width: 1.0,
+        ),
+      ),
+    ),
+    child: Column(
+      children: [
+        // Dream Drivers 로고
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Image.asset(
+              'assets/images/dreamdrivers_orange.png',
+              height: 40,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+
+        // 네비게이션 탭
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Row(
+            children: [
+              // 버스 현황 탭
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    final cur = ModalRoute.of(context)?.settings.name;
+                    if (cur == '/bus-status') return; // 중복 네비 방지
+                    Navigator.of(context).pushReplacementNamed('/bus-status');
+                  },
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.primary, width: 1),
                     ),
+                    child: Center(
+                      child: Text(
+                        '버스 현황',
+                        style: AppTextStyles.navigatorTabInactive,
+                      ),
+                    ),
+                  ),
                 ),
-            ),
-            child: Column(
-                children: [
-                    // Dream Drivers 로고
-                    Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                        child: Align(
-                            alignment: Alignment.centerLeft, // 왼쪽 정렬
-                            child: Image.asset(
-                                'assets/images/dreamdrivers_orange.png',
-                                height: 40,
-                                fit: BoxFit.contain,
-                            ),
-                        ),
+              ),
+              SizedBox(width: 12),
+
+              // 버스 신청 탭 (현재 화면)
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    final cur = ModalRoute.of(context)?.settings.name;
+                    if (cur == '/bus-search') return; // 현재면 무시
+                    Navigator.of(context).pushReplacementNamed('/bus-search');
+                  },
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    
-                    // 네비게이션 탭
-                    Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                        child: Row(
-                            children: [
-                                // 버스 현황 탭 (비활성화)
-                                Expanded(
-                                    child: GestureDetector(
-                                        onTap: () {
-                                            // 버스 현황 버튼 - 아직 기능 없음
-                                        },
-                                        child: Container(
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                                color: AppColors.surface, // Neutral/Ivory-300
-                                                borderRadius: BorderRadius.circular(20),
-                                                border: Border.all(color: AppColors.primary, width: 1), // Primary 테두리
-                                            ),
-                                            child: Center(
-                                                child: Text(
-                                                    '버스 현황',
-                                                    style: AppTextStyles.navigatorTabInactive, // 두번째 폰트 스타일
-                                                ),
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                                SizedBox(width: 12),
-                                // 버스 신청 탭 (활성화)
-                                Expanded(
-                                    child: GestureDetector(
-                                        onTap: () {
-                                            // 버스 신청 버튼 클릭 시 서치 스크린으로 이동 (현재 화면)
-                                            // 아무 동작 안 함
-                                        },
-                                        child: Container(
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                                color: AppColors.primary, // Primary/Orange-500
-                                                borderRadius: BorderRadius.circular(20),
-                                            ),
-                                            child: Center(
-                                                child: Text(
-                                                    '버스 신청',
-                                                    style: AppTextStyles.navigatorTab, // 첫번째 폰트 스타일
-                                                ),
-                                            ),
-                                        ),
-                                    ),
-                                ),
-                            ],
-                        ),
+                    child: Center(
+                      child: Text(
+                        '버스 신청',
+                        style: AppTextStyles.navigatorTab,
+                      ),
                     ),
-                ],
-            ),
-        );
-    }
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
 
     Widget _buildSearchField(BuildContext context, BusSearchViewModel viewModel) {

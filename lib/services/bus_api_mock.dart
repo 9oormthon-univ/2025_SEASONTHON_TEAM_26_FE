@@ -12,7 +12,11 @@ class MockBusApi implements BusApi {
   final _regions = <int, Map<String, dynamic>>{
     1: {'name': '천안시', 'centerLat': 36.815, 'centerLng': 127.113},
     2: {'name': '아산시', 'centerLat': 36.792, 'centerLng': 127.004},
-    3: {'name': '김포시 마산동', 'centerLat': 37.6210, 'centerLng': 126.8230}, // 📍김포 마산동 근처
+    3: {
+      'name': '김포시 마산동',
+      'centerLat': 37.6210,
+      'centerLng': 126.8230
+    }, // 📍김포 마산동 근처
   };
 
   // regionId -> buses
@@ -32,43 +36,106 @@ class MockBusApi implements BusApi {
 
   MockBusApi() {
     // 천안
-    final bus101 = Bus(busId: 101, regionId: 1, courseId: 1001, name: '천안 순환 A', centerLat: 36.815, centerLng: 127.113);
+    final bus101 = Bus(
+        busId: 101,
+        regionId: 1,
+        courseId: 1001,
+        name: '천안 순환 A',
+        centerLat: 36.815,
+        centerLng: 127.113);
     _buses[1] = [bus101];
     _courseStops[1001] = [
       Stop(stopId: 1, regionId: 1, name: '천안시청', lat: 36.8152, lng: 127.1127),
-      Stop(stopId: 2, regionId: 1, name: '신부동 터미널', lat: 36.8190, lng: 127.1540),
+      Stop(
+          stopId: 2, regionId: 1, name: '신부동 터미널', lat: 36.8190, lng: 127.1540),
       Stop(stopId: 3, regionId: 1, name: '천안역', lat: 36.8101, lng: 127.1467),
       Stop(stopId: 4, regionId: 1, name: '청수호수공원', lat: 36.7939, lng: 127.1227),
       Stop(stopId: 5, regionId: 1, name: '단국대병원', lat: 36.8403, lng: 127.1792),
     ];
 
     // 아산
-    final bus201 = Bus(busId: 201, regionId: 2, courseId: 2001, name: '아산 순환 B', centerLat: 36.792, centerLng: 127.004);
+    final bus201 = Bus(
+        busId: 201,
+        regionId: 2,
+        courseId: 2001,
+        name: '아산 순환 B',
+        centerLat: 36.792,
+        centerLng: 127.004);
     _buses[2] = [bus201];
     _courseStops[2001] = [
       Stop(stopId: 11, regionId: 2, name: '아산시청', lat: 36.7921, lng: 127.0043),
       Stop(stopId: 12, regionId: 2, name: '온양온천역', lat: 36.7808, lng: 127.0011),
-      Stop(stopId: 13, regionId: 2, name: '탕정면사무소', lat: 36.8166, lng: 127.0592),
+      Stop(
+          stopId: 13, regionId: 2, name: '탕정면사무소', lat: 36.8166, lng: 127.0592),
       Stop(stopId: 14, regionId: 2, name: '배방역', lat: 36.7772, lng: 127.0529),
       Stop(stopId: 15, regionId: 2, name: '둔포중심', lat: 36.8735, lng: 127.0610),
     ];
 
     // ✅ 김포 마산동(요청 2번)
-    final bus301 = Bus(busId: 301, regionId: 3, courseId: 3001, name: '김포 꿈마중 월요일 코스', centerLat: 37.640, centerLng: 126.636);
+    final bus301 = Bus(
+        busId: 301,
+        regionId: 3,
+        courseId: 3001,
+        name: '김포 꿈마중 월요일 코스',
+        centerLat: 37.640,
+        centerLng: 126.636);
     _buses[3] = [bus301];
     _courseStops[3001] = [
       Stop(stopId: 31, regionId: 3, name: '구래역', lat: 37.6453, lng: 126.6286),
-      Stop(stopId: 32, regionId: 3, name: '모아엘가아파트', lat: 37.6379, lng: 126.6307),
-      Stop(stopId: 33, regionId: 3, name: '은여울초등학교', lat: 37.6382, lng: 126.6406),
+      Stop(
+          stopId: 32,
+          regionId: 3,
+          name: '모아엘가아파트',
+          lat: 37.6379,
+          lng: 126.6307),
+      Stop(
+          stopId: 33,
+          regionId: 3,
+          name: '은여울초등학교',
+          lat: 37.6382,
+          lng: 126.6406),
       Stop(stopId: 34, regionId: 3, name: '마산역', lat: 37.6408, lng: 126.6443),
-      Stop(stopId: 35, regionId: 3, name: '한강신도시 마산동 주민센터', lat: 37.6436, lng: 126.6411),
+      Stop(
+          stopId: 35,
+          regionId: 3,
+          name: '한강신도시 마산동 주민센터',
+          lat: 37.6436,
+          lng: 126.6411),
+    ];
+
+    // ✅ 서울 서대문구 (요청 좌표 중심)
+    final bus401 = Bus(
+      busId: 401,
+      regionId: 4,
+      courseId: 4001,
+      name: '서대문 꿈마중 코스',
+      centerLat: 37.584000,
+      centerLng: 126.925230,
+    );
+    _buses[4] = [bus401];
+
+    _courseStops[4001] = [
+      // 좌표는 요청 지점 주변의 랜드마크를 기준으로 근접값 사용 (목업)
+      Stop(
+          stopId: 41,
+          regionId: 4,
+          name: '연희동주민센터',
+          lat: 37.5799,
+          lng: 126.9299),
+      Stop(
+          stopId: 42, regionId: 4, name: '연세대 정문', lat: 37.5659, lng: 126.9387),
+      Stop(stopId: 43, regionId: 4, name: '이대역', lat: 37.5567, lng: 126.9469),
+      Stop(stopId: 44, regionId: 4, name: '신촌역', lat: 37.5551, lng: 126.9368),
+      Stop(stopId: 45, regionId: 4, name: '연남동입구', lat: 37.5663, lng: 126.9253),
     ];
 
     // 역참조/지역 맵 구성 + 정류장별 버스 매핑
     for (final entry in _courseStops.entries) {
       final courseId = entry.key;
       final stops = entry.value;
-      final bus = _buses.values.expand((e) => e).firstWhere((b) => b.courseId == courseId);
+      final bus = _buses.values
+          .expand((e) => e)
+          .firstWhere((b) => b.courseId == courseId);
       for (final s in stops) {
         _stopRegion[s.stopId] = s.regionId;
         _busesByStop.putIfAbsent(s.stopId, () => []).add(bus);
@@ -136,7 +203,12 @@ class MockBusApi implements BusApi {
     await Future.delayed(const Duration(milliseconds: 120));
     // 간단 랜덤
     final r = _rand.nextInt(4);
-    return [BusRunState.inService, BusRunState.dwell, BusRunState.before, BusRunState.finished][r];
+    return [
+      BusRunState.inService,
+      BusRunState.dwell,
+      BusRunState.before,
+      BusRunState.finished
+    ][r];
   }
 
   @override
@@ -144,10 +216,13 @@ class MockBusApi implements BusApi {
     await Future.delayed(const Duration(milliseconds: 80));
     // 가끔 움직이게 랜덤 이동
     if (_rand.nextBool()) {
-      final bus = _buses.values.expand((e) => e).firstWhere((b) => b.busId == busId);
+      final bus =
+          _buses.values.expand((e) => e).firstWhere((b) => b.busId == busId);
       final stops = _courseStops[bus.courseId]!;
       final cur = _busCurrentStopId[busId];
-      final idx = cur == null ? 0 : (stops.indexWhere((s) => s.stopId == cur) + 1) % stops.length;
+      final idx = cur == null
+          ? 0
+          : (stops.indexWhere((s) => s.stopId == cur) + 1) % stops.length;
       _busCurrentStopId[busId] = stops[idx].stopId;
     }
     return _busCurrentStopId[busId];
@@ -162,12 +237,18 @@ class MockBusApi implements BusApi {
     // 현재 정류장과 비교해 간단히 상태 생성
     final cur = await fetchBusCurrentStopId(busId);
     if (cur == stopId) {
-      return BusStatusAtStop(stopId: stopId, state: BusRunState.dwell, remainingDwell: const Duration(minutes: 4));
+      return BusStatusAtStop(
+          stopId: stopId,
+          state: BusRunState.dwell,
+          remainingDwell: const Duration(minutes: 4));
     }
     // 완전 임의 로직 (목업)
     final r = _rand.nextInt(3);
     if (r == 0) {
-      return BusStatusAtStop(stopId: stopId, state: BusRunState.inService, etaToArrive: const Duration(minutes: 6));
+      return BusStatusAtStop(
+          stopId: stopId,
+          state: BusRunState.inService,
+          etaToArrive: const Duration(minutes: 6));
     } else if (r == 1) {
       return BusStatusAtStop(stopId: stopId, state: BusRunState.before);
     } else {
@@ -181,7 +262,10 @@ class MockBusApi implements BusApi {
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
     final a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_deg2rad(lat1)) * cos(_deg2rad(lat2)) * sin(dLon / 2) * sin(dLon / 2);
+        cos(_deg2rad(lat1)) *
+            cos(_deg2rad(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return R * c;
   }

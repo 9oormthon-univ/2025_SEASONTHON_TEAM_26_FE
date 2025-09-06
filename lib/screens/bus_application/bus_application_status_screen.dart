@@ -199,7 +199,8 @@ class _BusApplicationStatusScreenContent extends StatelessWidget {
                                 Expanded(
                                     child: GestureDetector(
                                         onTap: () {
-                                            // 버스 현황 버튼 - 아직 기능 없음
+                                            // 버스 현황 버튼 클릭 시 서치 스크린으로 이동
+                                            Navigator.pushNamed(context, '/bus-status');
                                         },
                                         child: Container(
                                             height: 40,

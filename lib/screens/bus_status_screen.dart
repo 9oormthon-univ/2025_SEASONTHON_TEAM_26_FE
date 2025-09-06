@@ -10,6 +10,10 @@ import '../models/bus_status.dart';
 import '../services/bus_api.dart';
 import '../services/bus_api_mock.dart';
 
+// ✅ 통합 앱바 색/텍스트 스타일
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+
 class BusStatusScreen extends StatefulWidget {
   const BusStatusScreen({super.key});
 
@@ -69,9 +73,87 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     super.dispose();
   }
 
-  // ───────── 헤더 드래그 → 시트 높이 제어 로직 추가 ─────────
+  // ───────── 통합 앱바 ─────────
+  Widget _buildIntegratedAppBar(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.appBarBackground, // Ivory-300 배경
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.primaryDisabled, // Primary/Orange-200
+            width: 1.0,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Dream Drivers 로고
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            child: Align(
+              alignment: Alignment.centerLeft, // 왼쪽 정렬
+              child: Image.asset(
+                'assets/images/dreamdrivers_orange.png',
+                height: 40,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
+          // 네비게이션 탭
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: Row(
+              children: [
+                // 버스 현황 탭 (현재 화면)
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/bus-status');
+                    },
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface, // Neutral/Ivory-300
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.primary, width: 1),
+                      ),
+                      child: Center(
+                        child: Text('버스 현황', style: AppTextStyles.navigatorTabInactive),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 버스 신청 탭
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/bus-search');
+                    },
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary, // Primary/Orange-500
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Center(child: Text('버스 신청', style: AppTextStyles.navigatorTab)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // ─────────────────────────────
+
+  // ───────── 헤더 드래그 → 시트 높이 제어 로직 ─────────
   void _onHeaderDragUpdate(DragUpdateDetails d) {
-    // 화면 높이 대비 드래그 픽셀을 비율(size)로 변환
     final screenH = MediaQuery.of(context).size.height;
     if (screenH <= 0) return;
     final dy = d.delta.dy; // 위로 드래그 시 음수
@@ -80,7 +162,6 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
   }
 
   void _onHeaderDragEnd(DragEndDetails d) {
-    // 속도에 따라 약간 스냅 느낌만 주기(선택)
     final v = d.velocity.pixelsPerSecond.dy; // 위로 빠르게 드래그: 음수
     double target = _sheetCtrl.size;
     if (v.abs() > 600) {
@@ -103,126 +184,121 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     final showingStopStatus = _selectedStop != null && _statusAtSelectedStop != null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('버스 현황'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.my_location),
-            onPressed: _goToMyLocation,
-            tooltip: '내 위치로 이동',
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // ① 지도
-          Positioned.fill(
-            child: KakaoMapView(
-              key: _mapKey,
-              onStopMarkerTap: (그만) async {
-                // 버스 선택 전에는 마커 탭 → 전환하지 않음 (근접 모드 유지)
-                if (_selectedBus == null) return;
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildIntegratedAppBar(context), // 상단 고정
+            Expanded(
+              child: Stack(
+                children: [
+                  // ① 지도
+                  Positioned.fill(
+                    child: KakaoMapView(
+                      key: _mapKey,
+                      onStopMarkerTap: (stop) async {
+                        if (_selectedBus == null) return;
 
-                setState(() {
-                  _selectedStop = stop;
-                  _statusAtSelectedStop = null;
-                });
+                        setState(() {
+                          _selectedStop = stop;
+                          _statusAtSelectedStop = null;
+                        });
 
-                final st = await _api.fetchBusStatusAtStop(
-                  busId: _selectedBus!.busId,
-                  stopId: stop.stopId,
-                );
-                setState(() => _statusAtSelectedStop = st);
+                        final st = await _api.fetchBusStatusAtStop(
+                          busId: _selectedBus!.busId,
+                          stopId: stop.stopId,
+                        );
+                        setState(() => _statusAtSelectedStop = st);
 
-                // 시트 올리기
-                try {
-                  await _sheetCtrl.animateTo(
-                    0.32,
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOut,
-                  );
-                } catch (_) {}
-              },
-            ),
-          ),
-
-          // ② 상단: 지역 검색 + 결과 드롭다운 카드
-          Positioned(
-            top: 12, left: 12, right: 12,
-            child: Column(
-              children: [
-                _SearchBar(
-                  controller: _searchCtl,
-                  onSubmitted: _onSearchRegion,
-                ),
-                if (_searchResults.isNotEmpty)
-                  _SearchResultCard(
-                    buses: _searchResults,
-                    onSelectBus: _onSelectBusFromList,
+                        try {
+                          await _sheetCtrl.animateTo(
+                            0.32,
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                          );
+                        } catch (_) {}
+                      },
+                    ),
                   ),
-              ],
+
+                  // ② 상단: 지역 검색 + 결과 드롭다운 카드
+                  Positioned(
+                    top: 12, left: 12, right: 12,
+                    child: Column(
+                      children: [
+                        _SearchBar(
+                          controller: _searchCtl,
+                          onSubmitted: _onSearchRegion,
+                        ),
+                        if (_searchResults.isNotEmpty)
+                          _SearchResultCard(
+                            buses: _searchResults,
+                            onSelectBus: _onSelectBusFromList,
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  // ③ 하단 드래그 시트
+                  DraggableScrollableSheet(
+                    controller: _sheetCtrl,
+                    initialChildSize: 0.20,
+                    minChildSize: _minSheet,
+                    maxChildSize: _maxSheet,
+                    builder: (context, controller) {
+                      if (!hasBus) {
+                        return _NearestStopSheet(
+                          controller: controller,
+                          loading: _nearestLoading,
+                          error: _nearestError,
+                          stop: _nearestStop,
+                          buses: _busesAtNearestStop,
+                          onTapBus: _onSelectBusFromNearest,
+                          onHeaderDragUpdate: _onHeaderDragUpdate,
+                          onHeaderDragEnd: _onHeaderDragEnd,
+                        );
+                      }
+
+                      if (hasBus && !showingStopStatus) {
+                        return _BusOverviewSheet(
+                          controller: controller,
+                          selectedBus: _selectedBus!,
+                          runState: _busRunState,
+                          routeStops: _routeStops,
+                          currentStopId: _busCurrentStopId,
+                          onTapStop: _onTapStopFromList,
+                          onHeaderDragUpdate: _onHeaderDragUpdate,
+                          onHeaderDragEnd: _onHeaderDragEnd,
+                        );
+                      }
+
+                      return _BusAtStopSheet(
+                        controller: controller,
+                        selectedStop: _selectedStop!,
+                        statusAtStop: _statusAtSelectedStop!,
+                        routeStops: _routeStops,
+                        currentStopId: _busCurrentStopId,
+                        onTapStop: _onTapStopFromList,
+                        onHeaderDragUpdate: _onHeaderDragUpdate,
+                        onHeaderDragEnd: _onHeaderDragEnd,
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-
-          // ③ 하단 드래그 시트
-          DraggableScrollableSheet(
-            controller: _sheetCtrl,
-            initialChildSize: 0.20,
-            minChildSize: _minSheet,
-            maxChildSize: _maxSheet,
-            builder: (context, controller) {
-              // (A) 검색 전: 가까운 정류장 요약 + 그 정류장을 지나는 버스 목록
-              if (!hasBus) {
-                return _NearestStopSheet(
-                  controller: controller,
-                  loading: _nearestLoading,
-                  error: _nearestError,
-                  stop: _nearestStop,
-                  buses: _busesAtNearestStop,
-                  onTapBus: _onSelectBusFromNearest,
-                  // ✅ 헤더 드래그 콜백 전달
-                  onHeaderDragUpdate: _onHeaderDragUpdate,
-                  onHeaderDragEnd: _onHeaderDragEnd,
-                );
-              }
-
-              // (B) 버스 전체 상태 (정류장 미선택)
-              if (hasBus && !showingStopStatus) {
-                return _BusOverviewSheet(
-                  controller: controller,
-                  selectedBus: _selectedBus!,
-                  runState: _busRunState,
-                  routeStops: _routeStops,
-                  currentStopId: _busCurrentStopId,
-                  onTapStop: _onTapStopFromList,
-                  // ✅ 헤더 드래그 콜백 전달
-                  onHeaderDragUpdate: _onHeaderDragUpdate,
-                  onHeaderDragEnd: _onHeaderDragEnd,
-                );
-              }
-
-              // (C) 특정 정류장에서의 버스 상태 (정류장 고정 + 아래 리스트만 스크롤)
-              return _BusAtStopSheet(
-                controller: controller,
-                selectedStop: _selectedStop!,
-                statusAtStop: _statusAtSelectedStop!,
-                routeStops: _routeStops,
-                currentStopId: _busCurrentStopId,
-                onTapStop: _onTapStopFromList,
-                // ✅ 헤더 드래그 콜백 전달
-                onHeaderDragUpdate: _onHeaderDragUpdate,
-                onHeaderDragEnd: _onHeaderDragEnd,
-              );
-            },
-          ),
-        ],
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: '내 위치로 이동',
+        onPressed: _goToMyLocation,
+        child: const Icon(Icons.my_location),
       ),
     );
   }
 
   // ───────── 위치 스트림: 가까운 정류장 자동 갱신 ─────────
   void _startNearestWatcher() async {
-    // 권한/서비스 확인
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) return;
     var permission = await Geolocator.checkPermission();
@@ -240,10 +316,9 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
         distanceFilter: 25, // 25m 이상 이동 시 이벤트
       ),
     ).listen((pos) async {
-      if (!_autoNearestEnabled) return; // 버스 탐색 중이면 자동 갱신 OFF
+      if (!_autoNearestEnabled) return;
       if (_nearestBusy) return;
 
-      // 과도 호출 방지: 0.8초 스로틀
       final now = DateTime.now();
       if (now.difference(_lastNearestAt).inMilliseconds < 800) return;
       _lastNearestAt = now;
@@ -256,7 +331,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
           maxDistanceMeters: 800,
         );
 
-        if (!_autoNearestEnabled) return; // 중간에 상태 바뀌면 무시
+        if (!_autoNearestEnabled) return;
 
         if (near == null) {
           if (_nearestStop != null) {
@@ -266,7 +341,6 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
               _nearestError = '주변 800m 이내 정류장이 없어요.';
             });
           }
-          // 내 위치 파란점은 업데이트만 (카메라는 따라가지 않음)
           await _mapKey.currentState?.setMyLocation(
             kmap.LatLng(latitude: pos.latitude, longitude: pos.longitude),
             moveCamera: false,
@@ -274,7 +348,6 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
           return;
         }
 
-        // 같은 정류장이면 UI 갱신 생략(깜빡임 방지) + 내 위치 dot만 최신화
         if (_lastNearestStopId == near.stopId) {
           await _mapKey.currentState?.setMyLocation(
             kmap.LatLng(latitude: pos.latitude, longitude: pos.longitude),
@@ -284,16 +357,13 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
         }
         _lastNearestStopId = near.stopId;
 
-        // 내 위치 dot 갱신 (카메라는 그대로)
         await _mapKey.currentState?.setMyLocation(
           kmap.LatLng(latitude: pos.latitude, longitude: pos.longitude),
           moveCamera: false,
         );
 
-        // 지도엔 근접 정류장 하나만 표시
         await _mapKey.currentState?.setStops([near]);
 
-        // 그 정류장을 지나는 버스
         final buses = await _api.fetchBusesByStop(near.stopId);
 
         if (!_autoNearestEnabled) return;
@@ -321,7 +391,6 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
   }
 
   Future<void> _onSelectBusFromList(Bus bus) async {
-    // 버스 보기 시작 → 자동 근접 정류장 갱신 일시정지 + 파란 점 제거
     _stopNearestWatcher();
     await _mapKey.currentState?.clearMyLocation();
 
@@ -333,12 +402,10 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       _searchResults = [];
     });
 
-    // 지역 중심으로 카메라 이동 (파란 점 X)
     await _mapKey.currentState?.moveCameraTo(
       kmap.LatLng(latitude: bus.centerLat, longitude: bus.centerLng),
     );
 
-    // 노선/상태 조회
     final stops = await _api.fetchRouteStops(bus.courseId);
     await _mapKey.currentState?.setStops(stops);
     final runState = await _api.fetchBusRunState(bus.busId);
@@ -350,7 +417,6 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       _busCurrentStopId = curStopId;
     });
 
-    // 시트를 살짝 올림
     try {
       await _sheetCtrl.animateTo(
         0.22,
@@ -370,7 +436,6 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       _statusAtSelectedStop = null;
     });
 
-    // 파란 점은 유지하지 않음, 카메라만 이동
     await _mapKey.currentState?.moveCameraTo(
       kmap.LatLng(latitude: s.lat, longitude: s.lng),
     );
@@ -417,8 +482,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
         setState(() {
           _nearestLoading = false;
           _nearestError = '위치 권한이 필요해요.';
@@ -433,7 +497,6 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
         maxDistanceMeters: 800,
       );
 
-      // 내 위치 파란점 표시(초기엔 카메라도 이동)
       await _mapKey.currentState?.setMyLocation(
         kmap.LatLng(latitude: pos.latitude, longitude: pos.longitude),
         moveCamera: true,
@@ -449,10 +512,8 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
         return;
       }
 
-      // 지도엔 근접 정류장 하나만 표시
       await _mapKey.currentState?.setStops([near]);
 
-      // 그 정류장을 지나는 버스들
       final buses = await _api.fetchBusesByStop(near.stopId);
 
       setState(() {
@@ -470,7 +531,7 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
     }
   }
 
-  // ───────── “내 위치로 이동” 버튼 ─────────
+  // ───────── “내 위치로 이동” FAB ─────────
   Future<void> _goToMyLocation() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -495,28 +556,75 @@ class _BusStatusScreenState extends State<BusStatusScreen> {
 // ───────────── 아래: 시트 UI 위젯들 ─────────────
 
 class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.controller, required this.onSubmitted});
+  const _SearchBar({
+    required this.controller,
+    required this.onSubmitted,
+  });
+
   final TextEditingController controller;
   final ValueChanged<String> onSubmitted;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      elevation: 6,
-      borderRadius: BorderRadius.circular(12),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          hintText: '지역을 입력하세요 (예: 천안, 아산, 김포)',
-          prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+    return Row(
+      children: [
+        // 검색 입력 필드
+        Expanded(
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(20),
+            child: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: '지역을 검색하세요',
+                hintStyle: TextStyle(color: Colors.grey[500]),
+                prefixIcon: const Icon(Icons.search, color: AppColors.primaryLight),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                filled: true,
+                fillColor: Colors.white,
+                // 모든 상태 동일한 테두리
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: AppColors.primaryDisabled, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: AppColors.primaryDisabled, width: 1.5),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: AppColors.primaryDisabled, width: 1.5),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: AppColors.primaryDisabled, width: 1.5),
+                ),
+              ),
+              onSubmitted: onSubmitted,
+            ),
           ),
-          filled: true,
         ),
-        onSubmitted: onSubmitted,
-      ),
+
+        const SizedBox(width: 8),
+
+        // 요일 선택 버튼 (UI만)
+        Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.arrow_drop_down, color: Colors.white),
+              SizedBox(width: 4),
+              Text('요일', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -540,7 +648,7 @@ class _SearchResultCard extends StatelessWidget {
         itemBuilder: (context, i) {
           final b = buses[i];
           return ListTile(
-            leading: const Icon(Icons.directions_bus_filled),
+            leading: const Icon(Icons.directions_bus_filled, color: AppColors.primary),
             title: Text(b.name),
             subtitle: Text('courseId: ${b.courseId}'),
             onTap: () => onSelectBus(b),
@@ -566,10 +674,43 @@ class _HeaderDraggable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      behavior: HitTestBehavior.opaque, // 빈 공간도 드래그 감지
+      behavior: HitTestBehavior.opaque,
       onVerticalDragUpdate: onUpdate,
       onVerticalDragEnd: onEnd,
       child: child,
+    );
+  }
+}
+
+// 공통: 시트 상단 헤더(그립+데코+타이틀+구분선)
+class _SheetHeader extends StatelessWidget {
+  const _SheetHeader({required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        Container(
+          width: 44, height: 5,
+          decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(3)),
+        ),
+        const SizedBox(height: 22),
+        Image.asset('assets/images/groom.png', height: 16, fit: BoxFit.contain),
+        const SizedBox(height: 35),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 16), color: AppColors.primaryDisabled),
+        const SizedBox(height: 12),
+      ],
     );
   }
 }
@@ -593,7 +734,6 @@ class _NearestStopSheet extends StatelessWidget {
   final List<Bus> buses;
   final ValueChanged<Bus> onTapBus;
 
-  // ✅ 추가: 헤더 드래그 콜백
   final GestureDragUpdateCallback onHeaderDragUpdate;
   final GestureDragEndCallback onHeaderDragEnd;
 
@@ -601,39 +741,30 @@ class _NearestStopSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       elevation: 12,
-      color: Theme.of(context).cardColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      color: AppColors.surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: ListView(
         controller: controller,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         children: [
-          // 그립 + 제목 영역 전체를 드래그 가능하게
           _HeaderDraggable(
             onUpdate: onHeaderDragUpdate,
             onEnd: onHeaderDragEnd,
             child: Column(
               children: [
-                Center(
-                  child: Container(
-                    width: 36, height: 4,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(2)),
+                const _SheetHeader(title: '가장 가까운 정류장'),
+                if (loading)
+                  const LinearProgressIndicator(
+                    backgroundColor: AppColors.surfaceVariant,
+                    color: AppColors.primaryLight,
                   ),
-                ),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('가까운 정류장', style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
-                const SizedBox(height: 6),
-                if (loading) const LinearProgressIndicator(),
-                if (error != null) Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(error!, style: const TextStyle(color: Colors.red)),
-                ),
+                if (error != null) const SizedBox(height: 8),
+                if (error != null)
+                  Text(error!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
                 if (!loading && error == null && stop != null) ...[
                   ListTile(
-                    leading: const Icon(Icons.place),
-                    title: Text(stop!.name),
+                    leading: const Icon(Icons.place, color: AppColors.primary),
+                    title: Text(stop!.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text('(${stop!.lat.toStringAsFixed(5)}, ${stop!.lng.toStringAsFixed(5)})'),
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -653,11 +784,17 @@ class _NearestStopSheet extends StatelessWidget {
               const Text('해당 정류장을 운행하는 버스가 없습니다.', style: TextStyle(color: Colors.black54)),
             ...buses.map(
               (b) => Card(
+                color: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: AppColors.primaryDisabled),
+                ),
                 child: ListTile(
-                  leading: const Icon(Icons.directions_bus_filled),
+                  leading: const Icon(Icons.directions_bus_filled, color: AppColors.primary),
                   title: Text(b.name),
                   subtitle: Text('courseId: ${b.courseId}'),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
                   onTap: () => onTapBus(b),
                 ),
               ),
@@ -688,7 +825,6 @@ class _BusOverviewSheet extends StatelessWidget {
   final int? currentStopId;
   final ValueChanged<Stop> onTapStop;
 
-  // ✅ 추가: 헤더 드래그 콜백
   final GestureDragUpdateCallback onHeaderDragUpdate;
   final GestureDragEndCallback onHeaderDragEnd;
 
@@ -701,57 +837,113 @@ class _BusOverviewSheet extends StatelessWidget {
     }
   }
 
+  // 정류장별 시간 범위(데이터 없으면 플레이스홀더)
+  String _timeRangeOrDash(Stop s) {
+    try {
+      final dyn = s as dynamic;
+      final start = dyn.startTime as String?;
+      final end = dyn.endTime as String?;
+      if (start != null && end != null && start.isNotEmpty && end.isNotEmpty) {
+        return '$start ~ $end';
+      }
+    } catch (_) {}
+    return '— — : — —  ~  — — : — —';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
       elevation: 12,
-      color: Theme.of(context).cardColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      color: AppColors.surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: Column(
         children: [
-          // 헤더 전체 드래그 가능
           _HeaderDraggable(
             onUpdate: onHeaderDragUpdate,
             onEnd: onHeaderDragEnd,
             child: Column(
               children: [
+                _SheetHeader(title: selectedBus.name),
                 const SizedBox(height: 12),
-                Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                //칩 라벨
+                const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Pill('상태'),
+                        Pill('현재 위치'),
+                        Pill('도착 시간'),
+                        Pill('잔여 시간'),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 8),
+
+                // 칩 값(모델에 값 없으면 “–” 처리)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      const Icon(Icons.directions_bus_filled),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(selectedBus.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
-                      if (runState != null) Chip(label: Text(_stateToKo(runState!))),
+                      Expanded(child: CellText('—')),
+                      Expanded(child: CellText('—')),
+                      Expanded(child: CellText('— — : — —')),
+                      Expanded(child: CellText('—')),
                     ],
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Divider(height: 1),
+
+                // 구분선
+                Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 16), color: AppColors.primaryDisabled),
+
+                // // 상태 칩(우측)
+                // Padding(
+                //   padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+                //   child: Row(
+                //     children: [
+                //       const Spacer(),
+                //       if (runState != null)
+                //         Chip(
+                //           label: Text(_stateToKo(runState!)),
+                //           backgroundColor: AppColors.primary.withOpacity(0.1),
+                //           labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                //           visualDensity: VisualDensity.compact,
+                //         ),
+                //     ],
+                //   ),
+                // ),
+
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  child: Align(alignment: Alignment.centerLeft, child: Text('노선 정류장', style: TextStyle(fontWeight: FontWeight.w600))),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('노선 정류장', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
                 ),
               ],
             ),
           ),
 
-          // 리스트만 스크롤
+          // 리스트 (배경에 녹이고 구분선으로만 나눔)
           Expanded(
-            child: ListView.builder(
+            child: ListView.separated(
               controller: controller,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               itemCount: routeStops.length,
+              separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.primaryDisabled),
               itemBuilder: (context, i) {
                 final s = routeStops[i];
                 final isCurrent = currentStopId == s.stopId;
                 return ListTile(
-                  leading: Icon(isCurrent ? Icons.directions_bus : Icons.radio_button_unchecked),
-                  title: Text(s.name),
-                  subtitle: Text('(${s.lat.toStringAsFixed(5)}, ${s.lng.toStringAsFixed(5)})'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    isCurrent ? Icons.directions_bus : Icons.radio_button_unchecked,
+                    color: isCurrent ? AppColors.primary : Colors.black54,
+                  ),
+                  title: Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(_timeRangeOrDash(s), style: const TextStyle(fontSize: 12, color: Colors.black54)),
                   onTap: () => onTapStop(s),
                 );
               },
@@ -782,7 +974,6 @@ class _BusAtStopSheet extends StatelessWidget {
   final int? currentStopId;
   final ValueChanged<Stop> onTapStop;
 
-  // ✅ 추가: 헤더 드래그 콜백
   final GestureDragUpdateCallback onHeaderDragUpdate;
   final GestureDragEndCallback onHeaderDragEnd;
 
@@ -795,84 +986,149 @@ class _BusAtStopSheet extends StatelessWidget {
     }
   }
 
+  // 남은 시간 mm표현 (예: 1시간 30분)
+  String _fmtDuration(Duration? d) {
+    if (d == null) return '–';
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60);
+    if (h == 0) return '${m}분';
+    if (m == 0) return '${h}시간';
+    return '${h}시간 ${m}분';
+  }
+
+  // “13분 후” 같은 표기
+  String _fmtEta(Duration? d) {
+    if (d == null) return '–';
+    final m = d.inMinutes;
+    if (m <= 0) return '곧 도착';
+    return '${m}분 후';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final regionText = (() {
+      try {
+        final v = (selectedStop as dynamic).region ?? (selectedStop as dynamic).regionName;
+        if (v is String && v.isNotEmpty) return v;
+      } catch (_) {}
+      return '–';
+    })();
+
     return Material(
       elevation: 12,
-      color: Theme.of(context).cardColor,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      color: AppColors.surface,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: Column(
         children: [
-          // 헤더 전체 드래그 가능
           _HeaderDraggable(
             onUpdate: onHeaderDragUpdate,
             onEnd: onHeaderDragEnd,
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 12),
+            child: Center(
+              child: Column(
+                children: [
+                  _SheetHeader(title: selectedStop.name), // 정류장명
+                  const SizedBox(height: 12),
 
-                // 헤더: 선택 정류장 정보 (고정)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.place),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(selectedStop.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
-                      Chip(label: Text(_stateToKo(statusAtStop.state))),
-                    ],
+                  // 칩 라벨 4개 (지역/운행 요일/도착 시간/정차 시간)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Pill('지역'),
+                        Pill('운행 요일'),
+                        Pill('도착 시간'),
+                        Pill('정차 시간'),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      if (statusAtStop.etaToArrive != null)
-                        Expanded(child: _kv('도착 예정', '${statusAtStop.etaToArrive!.inMinutes}분 후')),
-                      if (statusAtStop.remainingDwell != null)
-                        Expanded(child: _kv('정차 잔여', '${statusAtStop.remainingDwell!.inMinutes}분')),
-                    ],
+                  const SizedBox(height: 12),
+
+                  // 값 4개
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Row(
+                      children: [
+                        const CellText('–')..toString(), // 지역명은 아래로 교체
+                        // ↑ Analyzer 경고 회피용. 하지만 바로 아래서 교체한다.
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Divider(height: 1),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  child: Align(alignment: Alignment.centerLeft, child: Text('노선 정류장', style: TextStyle(fontWeight: FontWeight.w600))),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
-          // 리스트만 스크롤
+          // 리스트 (아래 영역만 스크롤)
           Expanded(
-            child: ListView.builder(
-              controller: controller,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-              itemCount: routeStops.length,
-              itemBuilder: (context, i) {
-                final s = routeStops[i];
-                final isCurrent = currentStopId == s.stopId;
-                return ListTile(
-                  leading: Icon(isCurrent ? Icons.directions_bus : Icons.radio_button_unchecked),
-                  title: Text(s.name),
-                  onTap: () => onTapStop(s),
-                );
-              },
+            child: Container(
+              color: AppColors.appBarBackground,
+              child: ListView.separated(
+                controller: controller,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                itemCount: routeStops.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.primaryDisabled),
+                itemBuilder: (context, i) {
+                  final s = routeStops[i];
+                  final isCurrent = currentStopId == s.stopId;
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      isCurrent ? Icons.directions_bus : Icons.radio_button_unchecked,
+                      color: isCurrent ? AppColors.primary : Colors.black54,
+                    ),
+                    title: Text(s.name),
+                    onTap: () => onTapStop(s),
+                  );
+                },
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _kv(String k, String v) => Row(
-        children: [
-          SizedBox(width: 80, child: Text(k, style: const TextStyle(color: Colors.black54))),
-          Expanded(child: Text(v, textAlign: TextAlign.right)),
-        ],
-      );
+// 라벨 칩
+class Pill extends StatelessWidget {
+  const Pill(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+      ),
+    );
+  }
+}
+
+// 값 셀(Expanded 균등분배)
+class CellText extends StatelessWidget {
+  const CellText(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return const Expanded(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 6),
+        child: Text(
+          '', // 사용 시 텍스트 주입 필요
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
 }
