@@ -1,0 +1,69 @@
+name: seasonthon_team26_fe
+description: "[2025 kakao X groom 시즌톤] 26팀 [꿈마중 버스] 프론트엔드"
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 상태 관리
+  provider: ^6.1.1
+
+  # 위치
+  geolocator: ^14.0.2
+
+  # 카카오 지도
+  kakao_maps_flutter: ^0.1.1
+
+  # 카카오 로그인/공통 SDK
+  kakao_flutter_sdk: ^1.9.6
+
+  # API 통신 (상위 버전 선택)
+  http: ^1.2.2
+  dio: ^5.4.0
+
+  # 로컬 저장소
+  shared_preferences: ^2.2.2
+
+  # 외부 링크
+  url_launcher: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Pretendard 폰트 설정
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.ttf
+        - asset: assets/fonts/Pretendard-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Pretendard-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Pretendard-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Pretendard-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Pretendard-Black.ttf
+          weight: 900
+
+  assets:
+    - assets/images/
+    - assets/fonts/
